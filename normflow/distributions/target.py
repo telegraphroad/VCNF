@@ -1,7 +1,8 @@
 import numpy as np
 import torch
 from torch import nn
-
+from torch.distributions import MultivariateNormal, Normal
+from scipy.stats import multivariate_t
 
 
 class Target(nn.Module):
@@ -56,7 +57,30 @@ class Target(nn.Module):
             z = torch.cat([z, z_[:ind, :]], 0)
         return z
 
+class StudentTDist(Target):
+    """
+    Bimodal two-dimensional distribution
+    """
+    def __init__(self,df=2.,dim=2):
+        super().__init__()
+        self.df = df
+        self.loc = np.repeat([0.],dim)
 
+    def sample(self, num_samples=1):
+        """
+        :param num_samples: Number of samples to draw
+        :return: Samples
+        """
+        return torch.tensor(multivariate_t(loc=self.loc,df=self.df).rvs(num_samples),device='cuda')
+
+    def log_prob(self, z):
+        """
+        :param z: value or batch of latent variable
+        :return: log probability of the distribution for z
+        """
+        return torch.tensor(multivariate_t(loc=self.loc,df=self.df).logpdf(z.cpu().detach().numpy()),device='cuda')
+
+  
 class TwoMoons(Target):
     """
     Bimodal two-dimensional distribution
