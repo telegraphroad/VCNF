@@ -57,6 +57,42 @@ class Target(nn.Module):
             z = torch.cat([z, z_[:ind, :]], 0)
         return z
 
+    
+class NealsFunnel(Target):
+    """
+    Bimodal two-dimensional distribution
+    """
+    def __init__(self):
+        super().__init__()
+
+
+    # def sample(self, num_samples=1):
+    #     """
+    #     :param num_samples: Number of samples to draw
+    #     :return: Samples
+    #     """
+    #     data = []
+    #     n_dims = 1
+    #     for i in range(nsamples):
+    #         v = norm(0, 1).rvs(1)
+    #         x = norm(0, np.exp(0.5*v)).rvs(n_dims)
+    #         data.append(np.hstack([v, x]))
+    #     data = pd.DataFrame(data)
+    #     return torch.tensor(data.values)
+
+    def log_prob(self, z):
+        """
+        :param z: value or batch of latent variable
+        :return: log probability of the distribution for z
+        """
+        #print('++++++++++',z)
+        v = z[:,0].cpu()
+        x = z[:,1].cpu()
+        v_like = Normal(torch.tensor([0.0]).cpu(), torch.tensor([1.0]).cpu()).log_prob(v).cpu()
+        x_like = Normal(torch.tensor([0.0]).cpu(), torch.exp(0.5*v).cpu()).log_prob(x).cpu()
+        return v_like + x_like
+
+
 class StudentTDist(Target):
     """
     Bimodal two-dimensional distribution
