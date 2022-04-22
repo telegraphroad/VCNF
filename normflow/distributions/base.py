@@ -156,7 +156,7 @@ class MixtureofMultivariateGaussians(BaseDistribution):
     def forward(self, num_samples=1):
         print('~~~1',self.loc.device,self.scale.device,self.w.device)
         
-        z = self.gmm.sample(num_samples)
+        z = self.gmm.sample([num_samples])
         print(z)
         log_prob= self.gmm.log_prob(z)
         return z, log_prob
