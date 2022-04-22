@@ -51,12 +51,12 @@ class MultivariateGaussian(BaseDistribution):
         with torch.no_grad():
             if trainable:
                 
-                self.loc = nn.Parameter(torch.zeros((self.n_dim,),dtype=torch.double,device='cuda'), requires_grad = True)
-                self.scale = nn.Parameter(torch.eye((self.n_dim,),dtype=torch.double,device='cuda'), requires_grad = True)
+                self.loc = nn.Parameter(torch.zeros(self.n_dim,dtype=torch.double,device='cuda'), requires_grad = True)
+                self.scale = nn.Parameter(torch.eye(self.n_dim,dtype=torch.double,device='cuda'), requires_grad = True)
             else:
                 
-                self.register_buffer("loc", torch.zeros((self.n_dim,),dtype=torch.double,device='cuda'))
-                self.register_buffer("scale", torch.eye((self.n_dim,),dtype=torch.double,device='cuda'))
+                self.register_buffer("loc", torch.zeros(self.n_dim,dtype=torch.double,device='cuda'))
+                self.register_buffer("scale", torch.eye(self.n_dim,dtype=torch.double,device='cuda'))
 
         self.mvn = D.MultivariateNormal(self.loc, self.scale)
         print('~~~1',self.gmm.mixture_distribution.probs)
