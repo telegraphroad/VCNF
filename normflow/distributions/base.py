@@ -141,13 +141,13 @@ class MixtureofMultivariateGaussians(BaseDistribution):
         self.n_dim = n_dim
 
         if trainable:
-            self.w = nn.Parameter(torch.ones((self.n_components,)))
-            self.loc = nn.Parameter(torch.zeros((self.n_components,self.n_dim)))
-            self.scale = nn.Parameter(torch.ones((self.n_components,self.n_dim)))
+            self.w = nn.Parameter(torch.ones((self.n_components,),dtype=tourch.double))
+            self.loc = nn.Parameter(torch.zeros((self.n_components,self.n_dim),dtype=tourch.double))
+            self.scale = nn.Parameter(torch.ones((self.n_components,self.n_dim),dtype=tourch.double))
         else:
-            self.register_buffer("w", torch.ones((self.n_components,)))
-            self.register_buffer("loc", torch.zeros((self.n_components,self.n_dim)))
-            self.register_buffer("scale", torch.ones((self.n_components,self.n_dim)))
+            self.register_buffer("w", torch.ones((self.n_components,),dtype=tourch.double))
+            self.register_buffer("loc", torch.zeros((self.n_components,self.n_dim),dtype=tourch.double))
+            self.register_buffer("scale", torch.ones((self.n_components,self.n_dim),dtype=tourch.double))
 
         mix = D.Categorical(self.w.cuda())
         comp = D.Independent(D.Normal(self.loc.cuda(), self.scale.cuda()), 1)
@@ -155,7 +155,7 @@ class MixtureofMultivariateGaussians(BaseDistribution):
 
     def forward(self, num_samples=1):
         print('~~~1',self.loc.is_leaf,self.scale.is_leaf,self.w.is_leaf)
-        z = self.gmm.sample(torch.tensor([num_samples],device='cuda'))
+        z = self.gmm.sample([num_samples])
         print(z)
         print('~~~2',self.loc.is_leaf,self.scale.is_leaf,self.w.is_leaf)
         log_prob= self.gmm.log_prob(z)
