@@ -59,7 +59,7 @@ class MultivariateGaussian(BaseDistribution):
                 self.register_buffer("scale", torch.eye(self.n_dim,dtype=torch.double,device='cuda'))
 
         self.mvn = D.MultivariateNormal(self.loc, self.scale)
-        print('~~~1',self.gmm.mixture_distribution.probs)
+        
     def forward(self, num_samples=1):
         #print('~~~1',self.gmm.mixture_distribution.probs)
         
