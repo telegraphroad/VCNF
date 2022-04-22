@@ -162,6 +162,7 @@ class MixtureofMultivariateGaussians(BaseDistribution):
         return z, log_prob
 
     def log_prob(self, z):
+        print('~~~0',self.loc.is_leaf,self.scale.is_leaf,self.w.is_leaf)
 
         return self.gmm.log_prob(z)
 
