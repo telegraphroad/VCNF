@@ -155,7 +155,7 @@ class MixtureofMultivariateGaussians(BaseDistribution):
         self.gmm = D.MixtureSameFamily(mix, comp)#univ
 
     def forward(self, num_samples=1):
-        print('~~~1',q0.gmm.mixture_distribution.probs.grad_fn)
+        print('~~~1',self.gmm.mixture_distribution.probs.grad_fn)
         
         z = self.gmm.sample([num_samples])
         print(z)
