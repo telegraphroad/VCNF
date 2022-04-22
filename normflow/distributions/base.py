@@ -149,21 +149,21 @@ class MixtureofMultivariateGaussians(BaseDistribution):
             self.register_buffer("loc", torch.zeros((self.n_components,self.n_dim),dtype=torch.double))
             self.register_buffer("scale", torch.ones((self.n_components,self.n_dim),dtype=torch.double))
 
-        mix = D.Categorical(self.w.cuda())
-        comp = D.Independent(D.Normal(self.loc.cuda(), self.scale.cuda()), 1)
+        mix = D.Categorical(self.w)
+        comp = D.Independent(D.Normal(self.loc, self.scale), 1)
         self.gmm = D.MixtureSameFamily(mix, comp)#univ
 
     def forward(self, num_samples=1):
-        print('~~~1',self.loc.is_leaf,self.scale.is_leaf,self.w.is_leaf)
+        #print('~~~1',self.loc.is_leaf,self.scale.is_leaf,self.w.is_leaf)
         z = self.gmm.sample([num_samples])
         print(z)
-        print('~~~2',self.loc.is_leaf,self.scale.is_leaf,self.w.is_leaf)
+        #print('~~~2',self.loc.is_leaf,self.scale.is_leaf,self.w.is_leaf)
         log_prob= self.gmm.log_prob(z)
-        print('~~~3',self.loc.is_leaf,self.scale.is_leaf,self.w.is_leaf)
+        #print('~~~3',self.loc.is_leaf,self.scale.is_leaf,self.w.is_leaf)
         return z, log_prob
 
     def log_prob(self, z):
-        print('~~~0',self.loc.is_leaf,self.scale.is_leaf,self.w.is_leaf)
+        #print('~~~0',self.loc.is_leaf,self.scale.is_leaf,self.w.is_leaf)
 
         return self.gmm.log_prob(z)
 
