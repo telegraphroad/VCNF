@@ -154,7 +154,7 @@ class MixtureofMultivariateGaussians(BaseDistribution):
         self.gmm = D.MixtureSameFamily(mix, comp)#univ
 
     def forward(self, num_samples=1):
-        #print('~~~1',self.loc.is_leaf,self.scale.is_leaf,self.w.is_leaf)
+        print('~~~1',self.loc.device,self.scale.device,self.w.device)
         z = self.gmm.sample([num_samples])
         print(z)
         #print('~~~2',self.loc.is_leaf,self.scale.is_leaf,self.w.is_leaf)
