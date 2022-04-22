@@ -1,5 +1,5 @@
 from .base import BaseDistribution, DiagGaussian, ClassCondDiagGaussian, \
-    GlowBase, AffineGaussian, GaussianMixture, GaussianPCA, UniformGaussian
+    GlowBase, AffineGaussian, GaussianMixture, GaussianPCA, UniformGaussian, StandardGMM
 from .target import Target, TwoMoons, CircularGaussianMixture, RingMixture, NealsFunnel, StudentTDist
 
 from .encoder import BaseEncoder, Dirac, Uniform, NNDiagGaussian
