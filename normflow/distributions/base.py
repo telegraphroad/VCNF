@@ -52,7 +52,7 @@ class MultivariateGaussian(BaseDistribution):
             if trainable:
                 
                 self.loc = nn.Parameter(torch.zeros((self.n_dim,),dtype=torch.double,device='cuda'), requires_grad = True)
-                self.scale = nn.Parameter(torch.ones((self.n_dim,),dtype=torch.double,device='cuda'), requires_grad = True)
+                self.scale = nn.Parameter(torch.eye((self.n_dim,),dtype=torch.double,device='cuda'), requires_grad = True)
             else:
                 
                 self.register_buffer("loc", torch.zeros((self.n_dim,),dtype=torch.double,device='cuda'))
