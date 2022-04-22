@@ -150,7 +150,7 @@ class MixtureofMultivariateGaussians(BaseDistribution):
             self.register_buffer("scale", torch.ones((self.n_components,self.n_dim),dtype=torch.double))
 
         mix = D.Categorical(self.w)
-        comp = D.Independent(D.Normal(self.loc, self.scale), torch.tensor(1))
+        comp = D.Independent(D.Normal(self.loc, self.scale), 1)
         self.gmm = D.MixtureSameFamily(mix, comp)#univ
 
     def forward(self, num_samples=1):
