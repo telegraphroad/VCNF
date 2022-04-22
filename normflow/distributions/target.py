@@ -64,7 +64,7 @@ class NealsFunnel(Target):
     """
     def __init__(self):
         super().__init__()
-
+        self.n_dims = 2
 
     # def sample(self, num_samples=1):
     #     """

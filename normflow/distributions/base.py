@@ -32,51 +32,46 @@ class BaseDistribution(nn.Module):
         raise NotImplementedError
 
 
-        
+
+
 class MultivariateGaussian(BaseDistribution):
     """
     Multivariate Gaussian distribution with diagonal covariance matrix
     """
-    def __init__(self, shape, trainable=True):
+    def __init__(self, n_dim=2, n_components = 3, trainable=False):
         """
         Constructor
         :param shape: Tuple with shape of data, if int shape has one dimension
         """
         super().__init__()
-        if isinstance(shape, int):
-            shape = (shape,)
-        self.shape = shape
-        self.n_dim = len(shape)
-        self.d = np.prod(shape)
-        if trainable:
-            self.loc = nn.Parameter(torch.zeros(1, *self.shape))
-            self.log_scale = nn.Parameter(torch.zeros(1, *self.shape))
-        else:
-            self.register_buffer("loc", torch.zeros(1, *self.shape))
-            self.register_buffer("log_scale", torch.zeros(1, *self.shape))
-        self.temperature = None  # Temperature parameter for annealed sampling
 
+        self.n_components = n_components
+        self.n_dim = n_dim
+
+        with torch.no_grad():
+            if trainable:
+                
+                self.loc = nn.Parameter(torch.zeros((self.n_components,self.n_dim),dtype=torch.double,device='cuda'), requires_grad = True)
+                self.scale = nn.Parameter(torch.ones((self.n_components,self.n_dim),dtype=torch.double,device='cuda'), requires_grad = True)
+            else:
+                
+                self.register_buffer("loc", torch.zeros((self.n_components,self.n_dim),dtype=torch.double,device='cuda'))
+                self.register_buffer("scale", torch.ones((self.n_components,self.n_dim),dtype=torch.double,device='cuda'))
+
+        self.mvn = D.MultivariateNormal(self.loc, self.scale)
+        print('~~~1',self.gmm.mixture_distribution.probs)
     def forward(self, num_samples=1):
-        eps = torch.randn((num_samples,) + self.shape, dtype=self.loc.dtype,
-                          device=self.loc.device)
-        if self.temperature is None:
-            log_scale = self.log_scale
-        else:
-            log_scale = self.log_scale + np.log(self.temperature)
-        z = self.loc + torch.exp(log_scale) * eps
-        log_p = - 0.5 * self.d * np.log(2 * np.pi) \
-                - torch.sum(log_scale + 0.5 * torch.pow(eps, 2), list(range(1, self.n_dim + 1)))
-        return z, log_p
+        #print('~~~1',self.gmm.mixture_distribution.probs)
+        
+        z = self.mvn.sample([num_samples])
+        #print(z)
+        log_prob= self.mvn.log_prob(z)
+        return z, log_prob
 
     def log_prob(self, z):
-        if self.temperature is None:
-            log_scale = self.log_scale
-        else:
-            log_scale = self.log_scale + np.log(self.temperature)
-        log_p = - 0.5 * self.d * np.log(2 * np.pi)\
-                - torch.sum(log_scale + 0.5 * torch.pow((z - self.loc) / torch.exp(log_scale), 2),
-                            list(range(1, self.n_dim + 1)))
-        return log_p
+        #print('~~~0',self.loc.is_leaf,self.scale.is_leaf,self.w.is_leaf)
+
+        return self.mvn.log_prob(z)
 
 
 class MultivariateMixtureofGaussians(BaseDistribution):
