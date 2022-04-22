@@ -136,8 +136,7 @@ class MixtureofMultivariateGaussians(BaseDistribution):
         :param shape: Tuple with shape of data, if int shape has one dimension
         """
         super().__init__()
-        if isinstance(shape, int):
-            shape = (shape,)
+        
         self.n_components = n_components
         self.n_dim = n_dim
 
