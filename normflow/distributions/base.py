@@ -155,10 +155,10 @@ class MixtureofMultivariateGaussians(BaseDistribution):
         self.gmm = D.MixtureSameFamily(mix, comp)#univ
         print('~~~1',self.gmm.mixture_distribution.probs)
     def forward(self, num_samples=1):
-        print('~~~1',self.gmm.mixture_distribution.probs)
+        #print('~~~1',self.gmm.mixture_distribution.probs)
         
         z = self.gmm.sample([num_samples])
-        print(z)
+        #print(z)
         log_prob= self.gmm.log_prob(z)
         return z, log_prob
 
