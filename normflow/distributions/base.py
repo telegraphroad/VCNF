@@ -148,6 +148,8 @@ class MixtureofMultivariateGaussians(BaseDistribution):
             self.register_buffer("w", torch.ones((self.n_components,),dtype=torch.double))
             self.register_buffer("loc", torch.zeros((self.n_components,self.n_dim),dtype=torch.double))
             self.register_buffer("scale", torch.ones((self.n_components,self.n_dim),dtype=torch.double))
+        with torch.no_grad():
+            self.w = self.w.cuda()
 
         mix = D.Categorical(self.w)
         comp = D.Independent(D.Normal(self.loc, self.scale), 1)
