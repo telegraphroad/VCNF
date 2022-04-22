@@ -32,6 +32,139 @@ class BaseDistribution(nn.Module):
         raise NotImplementedError
 
 
+        
+class MultivariateGaussian(BaseDistribution):
+    """
+    Multivariate Gaussian distribution with diagonal covariance matrix
+    """
+    def __init__(self, shape, trainable=True):
+        """
+        Constructor
+        :param shape: Tuple with shape of data, if int shape has one dimension
+        """
+        super().__init__()
+        if isinstance(shape, int):
+            shape = (shape,)
+        self.shape = shape
+        self.n_dim = len(shape)
+        self.d = np.prod(shape)
+        if trainable:
+            self.loc = nn.Parameter(torch.zeros(1, *self.shape))
+            self.log_scale = nn.Parameter(torch.zeros(1, *self.shape))
+        else:
+            self.register_buffer("loc", torch.zeros(1, *self.shape))
+            self.register_buffer("log_scale", torch.zeros(1, *self.shape))
+        self.temperature = None  # Temperature parameter for annealed sampling
+
+    def forward(self, num_samples=1):
+        eps = torch.randn((num_samples,) + self.shape, dtype=self.loc.dtype,
+                          device=self.loc.device)
+        if self.temperature is None:
+            log_scale = self.log_scale
+        else:
+            log_scale = self.log_scale + np.log(self.temperature)
+        z = self.loc + torch.exp(log_scale) * eps
+        log_p = - 0.5 * self.d * np.log(2 * np.pi) \
+                - torch.sum(log_scale + 0.5 * torch.pow(eps, 2), list(range(1, self.n_dim + 1)))
+        return z, log_p
+
+    def log_prob(self, z):
+        if self.temperature is None:
+            log_scale = self.log_scale
+        else:
+            log_scale = self.log_scale + np.log(self.temperature)
+        log_p = - 0.5 * self.d * np.log(2 * np.pi)\
+                - torch.sum(log_scale + 0.5 * torch.pow((z - self.loc) / torch.exp(log_scale), 2),
+                            list(range(1, self.n_dim + 1)))
+        return log_p
+
+
+class MultivariateMixtureofGaussians(BaseDistribution):
+    """
+    Multivariate Gaussian distribution with diagonal covariance matrix
+    """
+    def __init__(self, shape, trainable=True):
+        """
+        Constructor
+        :param shape: Tuple with shape of data, if int shape has one dimension
+        """
+        super().__init__()
+        if isinstance(shape, int):
+            shape = (shape,)
+        self.shape = shape
+        self.n_dim = len(shape)
+        self.d = np.prod(shape)
+        if trainable:
+            self.loc = nn.Parameter(torch.zeros(1, *self.shape))
+            self.log_scale = nn.Parameter(torch.zeros(1, *self.shape))
+        else:
+            self.register_buffer("loc", torch.zeros(1, *self.shape))
+            self.register_buffer("log_scale", torch.zeros(1, *self.shape))
+        self.temperature = None  # Temperature parameter for annealed sampling
+
+    def forward(self, num_samples=1):
+        eps = torch.randn((num_samples,) + self.shape, dtype=self.loc.dtype,
+                          device=self.loc.device)
+        if self.temperature is None:
+            log_scale = self.log_scale
+        else:
+            log_scale = self.log_scale + np.log(self.temperature)
+        z = self.loc + torch.exp(log_scale) * eps
+        log_p = - 0.5 * self.d * np.log(2 * np.pi) \
+                - torch.sum(log_scale + 0.5 * torch.pow(eps, 2), list(range(1, self.n_dim + 1)))
+        return z, log_p
+
+    def log_prob(self, z):
+        if self.temperature is None:
+            log_scale = self.log_scale
+        else:
+            log_scale = self.log_scale + np.log(self.temperature)
+        log_p = - 0.5 * self.d * np.log(2 * np.pi)\
+                - torch.sum(log_scale + 0.5 * torch.pow((z - self.loc) / torch.exp(log_scale), 2),
+                            list(range(1, self.n_dim + 1)))
+        return log_p
+
+
+
+class MixtureofMultivariateGaussians(BaseDistribution):
+    """
+    Multivariate Gaussian distribution with diagonal covariance matrix
+    """
+    def __init__(self, n_dim=2, n_components = 3, trainable=True):
+        """
+        Constructor
+        :param shape: Tuple with shape of data, if int shape has one dimension
+        """
+        super().__init__()
+        if isinstance(shape, int):
+            shape = (shape,)
+        self.n_components = n_components
+        self.n_dim = n_dim
+
+        if trainable:
+            self.w = nn.Parameter(torch.ones((self.n_components,)))
+            self.loc = nn.Parameter(torch.zeros((self.n_components,self.n_dim)))
+            self.scale = nn.Parameter(torch.ones((self.n_components,self.n_dim)))
+        else:
+            self.register_buffer("w", torch.ones((self.n_components,)))
+            self.register_buffer("loc", torch.zeros((self.n_components,self.n_dim)))
+            self.register_buffer("scale", torch.ones((self.n_components,self.n_dim)))
+        
+        mix = D.Categorical(self.w)
+        comp = D.Independent(D.Normal(self.loc, self.scale), 1)
+        self.gmm = D.MixtureSameFamily(mix, comp)#univ
+
+    def forward(self, num_samples=1):
+        z = self.gmm.sample([num_samples])
+
+        return z, self.gmm.log_prob(z)
+
+    def log_prob(self, z):
+
+        return self.gmm.log_prob(z)
+
+        
+        
 class DiagGaussian(BaseDistribution):
     """
     Multivariate Gaussian distribution with diagonal covariance matrix
