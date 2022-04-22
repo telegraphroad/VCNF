@@ -148,10 +148,14 @@ class MixtureofMultivariateGaussians(BaseDistribution):
             self.register_buffer("w", torch.ones((self.n_components,),device = 'cuda'))
             self.register_buffer("loc", torch.zeros((self.n_components,self.n_dim),device = 'cuda'))
             self.register_buffer("scale", torch.ones((self.n_components,self.n_dim),device = 'cuda'))
-        
+
+        print('~~~1',self.loc.is_leaf,self.scale.is_leaf,self.w.is_leaf)
         mix = D.Categorical(self.w)
+        print('~~~2',self.loc.is_leaf,self.scale.is_leaf,self.w.is_leaf)
         comp = D.Independent(D.Normal(self.loc, self.scale), 1)
+        print('~~~3',self.loc.is_leaf,self.scale.is_leaf,self.w.is_leaf)
         self.gmm = D.MixtureSameFamily(mix, comp)#univ
+        print('~~~4',self.loc.is_leaf,self.scale.is_leaf,self.w.is_leaf)
 
     def forward(self, num_samples=1):
         z = self.gmm.sample([num_samples])
