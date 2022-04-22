@@ -142,9 +142,9 @@ class MixtureofMultivariateGaussians(BaseDistribution):
 
         with torch.no_grad():
             if trainable:
-                self.w = nn.Parameter(torch.ones((self.n_components,),dtype=torch.double,device='cuda'))
-                self.loc = nn.Parameter(torch.zeros((self.n_components,self.n_dim),dtype=torch.double))
-                self.scale = nn.Parameter(torch.ones((self.n_components,self.n_dim),dtype=torch.double))
+                self.w = nn.Parameter(torch.ones((self.n_components,),dtype=torch.double,device='cuda'), requires_grad = True)
+                self.loc = nn.Parameter(torch.zeros((self.n_components,self.n_dim),dtype=torch.double), requires_grad = True)
+                self.scale = nn.Parameter(torch.ones((self.n_components,self.n_dim),dtype=torch.double), requires_grad = True)
             else:
                 self.register_buffer("w", torch.ones((self.n_components,),dtype=torch.double,device='cuda'))
                 self.register_buffer("loc", torch.zeros((self.n_components,self.n_dim),dtype=torch.double))
@@ -155,7 +155,7 @@ class MixtureofMultivariateGaussians(BaseDistribution):
         self.gmm = D.MixtureSameFamily(mix, comp)#univ
 
     def forward(self, num_samples=1):
-        print('~~~1',self.loc.device,self.scale.device,self.w.device)
+        print('~~~1',q0.gmm.mixture_distribution.probs.grad_fn)
         
         z = self.gmm.sample([num_samples])
         print(z)
