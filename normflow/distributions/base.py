@@ -141,7 +141,7 @@ class MixtureofMultivariateGaussians(BaseDistribution):
         self.n_dim = n_dim
 
         if trainable:
-            self.w = nn.Parameter(torch.ones((self.n_components,),dtype=torch.double))
+            self.w = nn.Parameter(torch.ones((self.n_components,),dtype=torch.double, device='cuda'))
             self.loc = nn.Parameter(torch.zeros((self.n_components,self.n_dim),dtype=torch.double))
             self.scale = nn.Parameter(torch.ones((self.n_components,self.n_dim),dtype=torch.double))
         else:
