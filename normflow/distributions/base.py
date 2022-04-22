@@ -141,13 +141,13 @@ class MixtureofMultivariateGaussians(BaseDistribution):
         self.n_dim = n_dim
 
         if trainable:
-            self.w = nn.Parameter(torch.ones((self.n_components,),dtype=tourch.double))
-            self.loc = nn.Parameter(torch.zeros((self.n_components,self.n_dim),dtype=tourch.double))
-            self.scale = nn.Parameter(torch.ones((self.n_components,self.n_dim),dtype=tourch.double))
+            self.w = nn.Parameter(torch.ones((self.n_components,),dtype=torch.double))
+            self.loc = nn.Parameter(torch.zeros((self.n_components,self.n_dim),dtype=torch.double))
+            self.scale = nn.Parameter(torch.ones((self.n_components,self.n_dim),dtype=torch.double))
         else:
-            self.register_buffer("w", torch.ones((self.n_components,),dtype=tourch.double))
-            self.register_buffer("loc", torch.zeros((self.n_components,self.n_dim),dtype=tourch.double))
-            self.register_buffer("scale", torch.ones((self.n_components,self.n_dim),dtype=tourch.double))
+            self.register_buffer("w", torch.ones((self.n_components,),dtype=torch.double))
+            self.register_buffer("loc", torch.zeros((self.n_components,self.n_dim),dtype=torch.double))
+            self.register_buffer("scale", torch.ones((self.n_components,self.n_dim),dtype=torch.double))
 
         mix = D.Categorical(self.w.cuda())
         comp = D.Independent(D.Normal(self.loc.cuda(), self.scale.cuda()), 1)
