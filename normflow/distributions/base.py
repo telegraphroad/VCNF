@@ -155,7 +155,8 @@ class MixtureofMultivariateGaussians(BaseDistribution):
 
     def forward(self, num_samples=1):
         print('~~~1',self.loc.device,self.scale.device,self.w.device)
-        z = self.gmm.sample([num_samples])
+        ns = torch.tensor([num_samples],device='cuda')
+        z = self.gmm.sample(ns)
         print(z)
         #print('~~~2',self.loc.is_leaf,self.scale.is_leaf,self.w.is_leaf)
         log_prob= self.gmm.log_prob(z)
