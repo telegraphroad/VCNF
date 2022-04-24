@@ -78,7 +78,8 @@ class MultivariateMixtureofGaussians(BaseDistribution):
     """
     Multivariate Gaussian distribution with diagonal covariance matrix
     """
-    def __init__(self, n_dim=2, n_components = 3, trainable=False):
+    def __init__(self, n_dim=2, n_components = 3, trainable=False, prop_scale=torch.tensor(6.),
+                 prop_shift=torch.tensor(-3.)):
         """
         Constructor
         :param shape: Tuple with shape of data, if int shape has one dimension
@@ -87,6 +88,9 @@ class MultivariateMixtureofGaussians(BaseDistribution):
 
         self.n_components = n_components
         self.n_dim = n_dim
+        self.register_buffer("prop_scale", prop_scale)
+        self.register_buffer("prop_shift", prop_shift)
+        
         self.gmm = []
         with torch.no_grad():
             for _ in range(self.n_dim):
