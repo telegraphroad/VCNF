@@ -90,7 +90,7 @@ class MultivariateMixtureofGaussians(BaseDistribution):
         self.n_dim = n_dim
         self.register_buffer("prop_scale", prop_scale)
         self.register_buffer("prop_shift", prop_shift)
-        
+
         self.gmm = []
         with torch.no_grad():
             for _ in range(self.n_dim):
@@ -146,7 +146,7 @@ class MultivariateMixtureofGaussians(BaseDistribution):
     def forward(self, num_samples=1):
         #print('~~~1',self.gmm.mixture_distribution.probs)
         
-        z = self.sample([num_samples])
+        z = self.sample(num_samples)
         #print(z)
         log_prob= self.log_prob(z)
         return z, log_prob
