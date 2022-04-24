@@ -78,46 +78,83 @@ class MultivariateMixtureofGaussians(BaseDistribution):
     """
     Multivariate Gaussian distribution with diagonal covariance matrix
     """
-    def __init__(self, shape, trainable=True):
+    def __init__(self, n_dim=2, n_components = 3, trainable=False):
         """
         Constructor
         :param shape: Tuple with shape of data, if int shape has one dimension
         """
         super().__init__()
-        if isinstance(shape, int):
-            shape = (shape,)
-        self.shape = shape
-        self.n_dim = len(shape)
-        self.d = np.prod(shape)
-        if trainable:
-            self.loc = nn.Parameter(torch.zeros(1, *self.shape))
-            self.log_scale = nn.Parameter(torch.zeros(1, *self.shape))
-        else:
-            self.register_buffer("loc", torch.zeros(1, *self.shape))
-            self.register_buffer("log_scale", torch.zeros(1, *self.shape))
-        self.temperature = None  # Temperature parameter for annealed sampling
+
+        self.n_components = n_components
+        self.n_dim = n_dim
+        self.gmm = []
+        with torch.no_grad():
+            for _ in range(self.n_dim):
+                if trainable:
+                    self.w = nn.Parameter(torch.ones(self.n_components,dtype=torch.double,device='cuda'), requires_grad = True)
+                    self.loc = nn.Parameter(torch.zeros(self.n_components,dtype=torch.double,device='cuda'), requires_grad = True)
+                    torch.randn(5,)
+                    self.scale = nn.Parameter(torch.ones(self.n_components,dtype=torch.double,device='cuda'), requires_grad = True)
+                    mix = D.Categorical(self.w)
+                    comp = D.Independent(D.Normal(self.loc, self.scale), 1)
+                    self.gmm.append(D.MixtureSameFamily(mix, comp))
+
+                else:
+                    self.register_buffer("w", torch.ones(self.n_components,dtype=torch.double,device='cuda'))
+                    self.register_buffer("loc", torch.zeros(self.n_components,dtype=torch.double,device='cuda'))
+                    self.register_buffer("scale", torch.ones(self.n_components,dtype=torch.double,device='cuda'))
+                    mix = D.Categorical(self.w)
+                    comp = D.Independent(D.Normal(self.loc, self.scale), 1)
+                    self.gmm.append(D.MixtureSameFamily(mix, comp))
+
+
+    def rejection_sampling(self, num_steps=1):
+        """
+        Perform rejection sampling on image distribution
+        :param num_steps: Number of rejection sampling steps to perform
+        :return: Accepted samples
+        """
+        eps = torch.rand((num_steps, self.n_dims), dtype=self.prop_scale.dtype,
+                         device=self.prop_scale.device)
+        z_ = self.prop_scale * eps + self.prop_shift
+        prob = torch.rand(num_steps, dtype=self.prop_scale.dtype,
+                          device=self.prop_scale.device)
+        prob_ = torch.exp(self.log_prob(z_) - self.max_log_prob)
+        accept = prob_ > prob
+        z = z_[accept, :]
+        return z
+
+    def sample(self, num_samples=1):
+        """
+        Sample from image distribution through rejection sampling
+        :param num_samples: Number of samples to draw
+        :return: Samples
+        """
+        z = torch.zeros((0, self.n_dims), dtype=self.prop_scale.dtype,
+                        device=self.prop_scale.device)
+        while len(z) < num_samples:
+            z_ = self.rejection_sampling(num_samples)
+            ind = np.min([len(z_), num_samples - len(z)])
+            z = torch.cat([z, z_[:ind, :]], 0)
+        return z
+
+
 
     def forward(self, num_samples=1):
-        eps = torch.randn((num_samples,) + self.shape, dtype=self.loc.dtype,
-                          device=self.loc.device)
-        if self.temperature is None:
-            log_scale = self.log_scale
-        else:
-            log_scale = self.log_scale + np.log(self.temperature)
-        z = self.loc + torch.exp(log_scale) * eps
-        log_p = - 0.5 * self.d * np.log(2 * np.pi) \
-                - torch.sum(log_scale + 0.5 * torch.pow(eps, 2), list(range(1, self.n_dim + 1)))
-        return z, log_p
+        #print('~~~1',self.gmm.mixture_distribution.probs)
+        
+        z = self.sample([num_samples])
+        #print(z)
+        log_prob= self.log_prob(z)
+        return z, log_prob
 
     def log_prob(self, z):
-        if self.temperature is None:
-            log_scale = self.log_scale
-        else:
-            log_scale = self.log_scale + np.log(self.temperature)
-        log_p = - 0.5 * self.d * np.log(2 * np.pi)\
-                - torch.sum(log_scale + 0.5 * torch.pow((z - self.loc) / torch.exp(log_scale), 2),
-                            list(range(1, self.n_dim + 1)))
-        return log_p
+        #print('~~~0',self.loc.is_leaf,self.scale.is_leaf,self.w.is_leaf)
+        lp = 0.
+        for g in self.gmm:
+            lp += g.log_prob(z)
+        return lp
+
 
 
 
@@ -148,7 +185,9 @@ class MixtureofMultivariateGaussians(BaseDistribution):
         mix = D.Categorical(self.w)
         comp = D.Independent(D.Normal(self.loc, self.scale), 1)
         self.gmm = D.MixtureSameFamily(mix, comp)#univ
-        print('~~~1',self.gmm.mixture_distribution.probs)
+        #print('~~~1',self.gmm.mixture_distribution.probs)
+
+
     def forward(self, num_samples=1):
         #print('~~~1',self.gmm.mixture_distribution.probs)
         
