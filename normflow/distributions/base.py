@@ -93,10 +93,9 @@ class MultivariateMixtureofGaussians(BaseDistribution):
                 if trainable:
                     self.w = nn.Parameter(torch.ones(self.n_components,dtype=torch.double,device='cuda'), requires_grad = True)
                     self.loc = nn.Parameter(torch.zeros(self.n_components,dtype=torch.double,device='cuda'), requires_grad = True)
-                    torch.randn(5,)
                     self.scale = nn.Parameter(torch.ones(self.n_components,dtype=torch.double,device='cuda'), requires_grad = True)
                     mix = D.Categorical(self.w)
-                    comp = D.Independent(D.Normal(self.loc, self.scale), 1)
+                    comp = D.Normal(self.loc, self.scale)
                     self.gmm.append(D.MixtureSameFamily(mix, comp))
 
                 else:
@@ -104,7 +103,7 @@ class MultivariateMixtureofGaussians(BaseDistribution):
                     self.register_buffer("loc", torch.zeros(self.n_components,dtype=torch.double,device='cuda'))
                     self.register_buffer("scale", torch.ones(self.n_components,dtype=torch.double,device='cuda'))
                     mix = D.Categorical(self.w)
-                    comp = D.Independent(D.Normal(self.loc, self.scale), 1)
+                    comp = D.Normal(self.loc, self.scale)
                     self.gmm.append(D.MixtureSameFamily(mix, comp))
 
 
