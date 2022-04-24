@@ -90,6 +90,7 @@ class MultivariateMixtureofGaussians(BaseDistribution):
         self.n_dim = n_dim
         self.register_buffer("prop_scale", prop_scale)
         self.register_buffer("prop_shift", prop_shift)
+        self.max_log_prob = 0.
 
         self.gmm = []
         with torch.no_grad():
