@@ -118,7 +118,7 @@ class MultivariateMixtureofGaussians(BaseDistribution):
         :param num_steps: Number of rejection sampling steps to perform
         :return: Accepted samples
         """
-        eps = torch.rand((num_steps, self.n_dim), dtype=self.prop_scale.dtype,
+        eps = torch.rand((num_steps, 1), dtype=self.prop_scale.dtype,
                          device=self.prop_scale.device)
         z_ = self.prop_scale * eps + self.prop_shift
         prob = torch.rand(num_steps, dtype=self.prop_scale.dtype,
@@ -135,7 +135,7 @@ class MultivariateMixtureofGaussians(BaseDistribution):
         :param num_samples: Number of samples to draw
         :return: Samples
         """
-        z = torch.zeros((0, self.n_dim), dtype=self.prop_scale.dtype,
+        z = torch.zeros((0, 1), dtype=self.prop_scale.dtype,
                         device=self.prop_scale.device)
         
         while len(z) < num_samples:
