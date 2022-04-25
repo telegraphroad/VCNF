@@ -97,16 +97,16 @@ class MultivariateMixtureofGaussians(BaseDistribution):
             for _ in range(self.n_dim):
                 if trainable:
                     self.w = nn.Parameter(torch.ones(self.n_components,dtype=torch.double,device='cuda'), requires_grad = True)
-                    self.loc = nn.Parameter(torch.zeros(1,dtype=torch.double,device='cuda'), requires_grad = True)
-                    self.scale = nn.Parameter(torch.ones(1,dtype=torch.double,device='cuda'), requires_grad = True)
+                    self.loc = nn.Parameter(torch.zeros(self.n_components,dtype=torch.double,device='cuda'), requires_grad = True)
+                    self.scale = nn.Parameter(torch.ones(self.n_components,dtype=torch.double,device='cuda'), requires_grad = True)
                     mix = D.Categorical(self.w)
                     comp = D.Normal(self.loc, self.scale)
                     self.gmm.append(D.MixtureSameFamily(mix, comp))
 
                 else:
                     self.register_buffer("w", torch.ones(self.n_components,dtype=torch.double,device='cuda'))
-                    self.register_buffer("loc", torch.zeros(1,dtype=torch.double,device='cuda'))
-                    self.register_buffer("scale", torch.ones(1,dtype=torch.double,device='cuda'))
+                    self.register_buffer("loc", torch.zeros(self.n_components,dtype=torch.double,device='cuda'))
+                    self.register_buffer("scale", torch.ones(self.n_components,dtype=torch.double,device='cuda'))
                     mix = D.Categorical(self.w)
                     comp = D.Normal(self.loc, self.scale)
                     self.gmm.append(D.MixtureSameFamily(mix, comp))
