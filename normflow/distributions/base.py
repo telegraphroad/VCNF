@@ -143,7 +143,7 @@ class MultivariateMixtureofGaussians(BaseDistribution):
             
             z_ = self.rejection_sampling(num_samples)
             ind = np.min([len(z_), num_samples - len(z)])
-            z = torch.cat([z, z_[:ind, :]], 0)
+            z = torch.cat([z, z_[:ind]], 0)
         return z
 
 
