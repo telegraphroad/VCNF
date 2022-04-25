@@ -126,8 +126,8 @@ class MultivariateMixtureofGaussians(BaseDistribution):
         #print('++++',z_.shape,prob.shape,len(self.log_prob(z_.squeeze())))
         prob_ = torch.exp(self.log_prob(z_.squeeze()) - self.max_log_prob)
         accept = prob_ > prob
-        print('++++++',accept.shape,z_.shape)
-        z = z_[accept, :]
+        #print('++++++',accept.shape,z_.shape)
+        z = z_[accept]
         return z
 
     def sample(self, num_samples=1):
