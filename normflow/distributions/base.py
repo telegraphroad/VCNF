@@ -123,7 +123,7 @@ class MultivariateMixtureofGaussians(BaseDistribution):
         z_ = self.prop_scale * eps + self.prop_shift
         prob = torch.rand(num_steps, dtype=self.prop_scale.dtype,
                           device=self.prop_scale.device)
-        print('++++',self.log_prob_gmm(z_).shape)
+        print('++++',len(self.log_prob_gmm(z_)), self.log_prob_gmm(z_)[0].shape)
         prob_ = torch.exp(self.log_prob_gmm(z_) - self.max_log_prob)
         accept = prob_ > prob
         z = z_[accept, :]
