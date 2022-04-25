@@ -157,6 +157,7 @@ class MultivariateMixtureofGaussians(BaseDistribution):
         lp = 0.
         for g in self.gmm:
             lp += g.log_prob(z)
+        print('~~~~',lp.shape,g.log_prob(z).shape)
         return lp
 
 
