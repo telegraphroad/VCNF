@@ -136,6 +136,7 @@ class MultivariateMixtureofGaussians(BaseDistribution):
         """
         z = torch.zeros((0, self.n_dim), dtype=self.prop_scale.dtype,
                         device=self.prop_scale.device)
+        print('++++++++++',z.shape)
         while len(z) < num_samples:
             z_ = self.rejection_sampling(num_samples)
             ind = np.min([len(z_), num_samples - len(z)])
