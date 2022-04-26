@@ -34,7 +34,7 @@ class BaseDistribution(nn.Module):
 
 class GMM(nn.Module):
     
-    def __init__(self, weights, mbase, scale, vbase, n_cell=8, shift=0, dim=2):
+    def __init__(self, weights, mbase,vbase, scale, n_cell=8, shift=0, dim=2):
         super(GMM, self).__init__()
         self.weight = nn.Parameter(weights)
         self.mbase = nn.Parameter(mbase)
@@ -69,7 +69,7 @@ class GMM(nn.Module):
         means = self.trsf_gridm()
         std = self.trsf_gridv()
         mix = D.Categorical(self.weight)
-        comp = D.Independent(D.Normal(means, std), 1)
+        comp = D.Independent(D.Normal(means, std+0.001), 1)
         self.gmm = D.MixtureSameFamily(mix, comp)
         samples = self.gmm.sample(num_samples)
         return samples, self.gmm.log_prob(samples)
