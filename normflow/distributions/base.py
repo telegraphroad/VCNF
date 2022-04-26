@@ -32,6 +32,47 @@ class BaseDistribution(nn.Module):
         raise NotImplementedError
 
 
+class GMM(nn.Module):
+    
+    def __init__(self, weights, mbase, scale, vbase, n_cell=8, shift=0, dim=2):
+        super(GMM, self).__init__()
+        self.weight = nn.Parameter(weights)
+        self.mbase = nn.Parameter(mbase)
+        self.vbase = nn.Parameter(vbase)
+        self.scale = nn.Parameter(scale)
+        self.grid = torch.arange(1, n_cell+1)
+        self.shift = shift
+        self.n_cell = n_cell
+        self.dim = dim
+    
+    def trsf_gridm(self):
+        trsf = (
+            torch.log(self.scale * self.grid + self.shift) 
+            / torch.log(self.mbase)
+            ).reshape(-1, 1)
+        return trsf.expand(self.n_cell, self.dim)
+
+    def trsf_gridv(self):
+        trsf = (
+            torch.log(self.scale * self.grid + self.shift) 
+            / torch.log(self.vbase)
+            ).reshape(-1, 1)
+        return trsf.expand(self.n_cell, self.dim)
+    
+    def forward(self, num_samples=1):
+        means = self.trsf_gridm()
+        std = self.trsf_gridv()
+        mix = D.Categorical(self.weight)
+        comp = D.Independent(D.Normal(means, std), 1)
+        self.gmm = D.MixtureSameFamily(mix, comp)
+        samples = self.gmm.sample(num_samples)
+        return samples, self.gmm.log_prob(samples)
+
+    def log_prob(self, z):
+        #print('~~~0',self.loc.is_leaf,self.scale.is_leaf,self.w.is_leaf)
+
+        return self.gmm.log_prob(z)
+
 
 
 class MultivariateGaussian(BaseDistribution):
