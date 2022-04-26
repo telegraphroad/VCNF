@@ -39,7 +39,7 @@ class Target(nn.Module):
         prob = torch.rand(num_steps, dtype=self.prop_scale.dtype,
                           device=self.prop_scale.device)
         prob_ = torch.exp(self.log_prob(z_) - self.max_log_prob).cuda()
-        print('~~~',eps.device,z_.device,prob.device,prob_.device)
+        #print('~~~',eps.device,z_.device,prob.device,prob_.device)
         accept = prob_ > prob
         z = z_[accept, :]
         return z
@@ -54,6 +54,9 @@ class Target(nn.Module):
                         device=self.prop_scale.device)
         while len(z) < num_samples:
             z_ = self.rejection_sampling(num_samples)
+            print('a',len(z_))
+            print('b',num_samples)
+            print('c',len(z))
             ind = np.min([len(z_), num_samples - len(z)])
             z = torch.cat([z, z_[:ind, :]], 0)
         return z
