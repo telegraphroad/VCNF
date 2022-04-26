@@ -71,7 +71,7 @@ class GMM(nn.Module):
         mix = D.Categorical(self.weight)
         comp = D.Independent(D.Normal(means, std+0.001), 1)
         self.gmm = D.MixtureSameFamily(mix, comp)
-        samples = self.gmm.sample(num_samples)
+        samples = self.gmm.sample([num_samples])
         return samples, self.gmm.log_prob(samples)
 
     def log_prob(self, z):
