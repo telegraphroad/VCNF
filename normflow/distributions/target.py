@@ -54,10 +54,7 @@ class Target(nn.Module):
                         device=self.prop_scale.device)
         while len(z) < num_samples:
             z_ = self.rejection_sampling(num_samples)
-            print('a',len(z_))
-            print('b',num_samples)
-            print('c',len(z))
-            ind = np.min([len(z_), num_samples - len(z)])
+            ind = np.min([len(z_), num_samples - len(z)].cpu())
             z = torch.cat([z, z_[:ind, :]], 0)
         return z
 
