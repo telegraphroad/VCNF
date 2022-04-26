@@ -40,7 +40,7 @@ class GMM(nn.Module):
         self.mbase = nn.Parameter(mbase)
         self.vbase = nn.Parameter(vbase)
         self.scale = nn.Parameter(scale)
-        self.grid = torch.arange(1, n_cell+1)
+        self.grid = torch.arange(1, n_cell+1,device='cuda')
         self.shift = shift
         self.n_cell = n_cell
         self.dim = dim
