@@ -47,7 +47,7 @@ class GMM(nn.Module):
         means = self.trsf_gridm()
         std = self.trsf_gridv()
         mix = D.Categorical(self.weight)
-        comp = D.Independent(D.Normal(means, std), 1)
+        comp = D.Independent(D.Normal(means, std+0.001), 1)
         self.gmm = D.MixtureSameFamily(mix, comp)
 
     
