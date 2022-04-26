@@ -44,6 +44,12 @@ class GMM(nn.Module):
         self.shift = shift
         self.n_cell = n_cell
         self.dim = dim
+        means = self.trsf_gridm()
+        std = self.trsf_gridv()
+        mix = D.Categorical(self.weight)
+        comp = D.Independent(D.Normal(means, std), 1)
+        self.gmm = D.MixtureSameFamily(mix, comp)
+
     
     def trsf_gridm(self):
         trsf = (
