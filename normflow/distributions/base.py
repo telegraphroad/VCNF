@@ -36,10 +36,10 @@ class GMM(nn.Module):
     
     def __init__(self, weights, mbase,vbase, scale, n_cell=8, shift=0, dim=2):
         super(GMM, self).__init__()
-        self.weight = nn.Parameter(weights)
-        self.mbase = nn.Parameter(mbase)
-        self.vbase = nn.Parameter(vbase)
-        self.scale = nn.Parameter(scale)
+        self.weight = nn.Parameter(weights,device='cuda')
+        self.mbase = nn.Parameter(mbase,device='cuda')
+        self.vbase = nn.Parameter(vbase,device='cuda')
+        self.scale = nn.Parameter(scale,device='cuda')
         self.grid = torch.arange(1, n_cell+1)
         self.shift = shift
         self.n_cell = n_cell
