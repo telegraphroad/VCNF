@@ -38,7 +38,7 @@ class Target(nn.Module):
         z_ = self.prop_scale * eps + self.prop_shift
         prob = torch.rand(num_steps, dtype=self.prop_scale.dtype,
                           device=self.prop_scale.device)
-        prob_ = torch.exp(self.log_prob(z_) - self.max_log_prob,device=self.prop_scale.device)
+        prob_ = torch.exp(self.log_prob(z_) - self.max_log_prob).cuda()
         print('~~~',eps.device,z_.device,prob.device,prob_.device)
         accept = prob_ > prob
         z = z_[accept, :]
