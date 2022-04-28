@@ -37,18 +37,19 @@ class GMM(nn.Module):
     def __init__(self, weights, mbase,vbase, scale, n_cell=8, shift=0, dim=2):
         super(GMM, self).__init__()
         self.weight = nn.Parameter(weights, requires_grad=False)
-        self.mbase = nn.Parameter(mbase, requires_grad=True)
+        self.mbase = nn.Parameter(mbase, requires_grad=False)
         self.vbase = nn.Parameter(vbase, requires_grad=False)
         self.scale = nn.Parameter(scale, requires_grad=False)
         self.grid = torch.arange(1, n_cell+1,device='cuda')
         self.shift = shift
         self.n_cell = n_cell
         self.dim = dim
-        means = self.trsf_gridm()
-        std = self.trsf_gridv()
-        mix = D.Categorical(self.weight)
-        comp = D.Independent(D.Normal(means, std+0.001), 1)
-        self.gmm = D.MixtureSameFamily(mix, comp)
+        with torch.no_grad():
+            means = self.trsf_gridm()
+            std = self.trsf_gridv()
+            mix = D.Categorical(self.weight)
+            comp = D.Independent(D.Normal(means, std+0.001), 1)
+            self.gmm = D.MixtureSameFamily(mix, comp)
 
     
     def trsf_gridm(self):
@@ -66,17 +67,20 @@ class GMM(nn.Module):
         return trsf.expand(self.n_cell, self.dim)
     
     def forward(self, num_samples=1):
-        with torch.no_grad():
-            samples = self.gmm.sample([num_samples]).double()
-        return samples, self.gmm.log_prob(samples)
 
-    def log_prob(self, z):
-        #print('~~~0',self.loc.is_leaf,self.scale.is_leaf,self.w.is_leaf)
         means = self.trsf_gridm()
         std = self.trsf_gridv()
         mix = D.Categorical(self.weight)
         comp = D.Independent(D.Normal(means, std+0.001), 1)
         self.gmm = D.MixtureSameFamily(mix, comp)
+
+        with torch.no_grad():
+            samples = self.gmm.sample([num_samples]).double()
+
+        return samples, self.gmm.log_prob(samples)
+
+    def log_prob(self, z):
+        #print('~~~0',self.loc.is_leaf,self.scale.is_leaf,self.w.is_leaf)
 
         return self.gmm.log_prob(z)
 
