@@ -35,10 +35,14 @@ class Target(nn.Module):
         """
         eps = torch.rand((num_steps, self.n_dims), dtype=self.prop_scale.dtype,
                          device=self.prop_scale.device)
+        print('ed',eps.device)
         z_ = self.prop_scale * eps + self.prop_shift
+        print('z_d',z_.device)
         prob = torch.rand(num_steps, dtype=self.prop_scale.dtype,
                           device=self.prop_scale.device)
+        print('pd',prob.device)
         prob_ = torch.exp(self.log_prob(z_) - self.max_log_prob)
+        print('p_d',prob_.device)
         #print('~~~',eps.device,z_.device,prob.device,prob_.device)
         accept = prob_ > prob
         z = z_[accept, :]
