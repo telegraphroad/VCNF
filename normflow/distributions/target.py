@@ -44,7 +44,8 @@ class Target(nn.Module):
         prob_ = torch.exp(self.log_prob(z_) - self.max_log_prob)
         print('p_d',prob_.device)
         #print('~~~',eps.device,z_.device,prob.device,prob_.device)
-        accept = prob_ > prob
+        with torch.no_grad():
+            accept = prob_.cpu() > prob.cpu()
         z = z_[accept, :]
         return z
 
