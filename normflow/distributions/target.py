@@ -9,8 +9,8 @@ class Target(nn.Module):
     """
     Sample target distributions to test models
     """
-    def __init__(self, prop_scale=torch.tensor(6.),
-                 prop_shift=torch.tensor(-3.)):
+    def __init__(self, prop_scale=torch.tensor(20.),
+                 prop_shift=torch.tensor(-10.)):
         """
         Constructor
         :param prop_scale: Scale for the uniform proposal
@@ -63,7 +63,8 @@ class NealsFunnel(Target):
     """
     Bimodal two-dimensional distribution
     """
-    def __init__(self):
+    def __init__(self,prop_scale=torch.tensor(20.),
+                 prop_shift=torch.tensor(-10.)):
         super().__init__()
         self.n_dims = 2
         self.max_log_prob = 0.
