@@ -46,7 +46,7 @@ show_iter = 1000
 # cb = 1.00015
 # scale = 1.
 
-K = 96
+K = 90
 torch.manual_seed(0)
 
 latent_size = 2
