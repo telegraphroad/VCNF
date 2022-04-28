@@ -73,15 +73,15 @@ class GMM(nn.Module):
         mix = D.Categorical(self.weight)
         comp = D.Independent(D.Normal(means, std+0.001), 1)
         self.gmm = D.MixtureSameFamily(mix, comp)
-
+        print('1mbv',self.mbase._version)
         with torch.no_grad():
             samples = self.gmm.sample([num_samples]).double()
-
+        print('2mbv',self.mbase._version)
         return samples, self.gmm.log_prob(samples)
 
     def log_prob(self, z):
         #print('~~~0',self.loc.is_leaf,self.scale.is_leaf,self.w.is_leaf)
-
+        print('3mbv',self.mbase._version)
         return self.gmm.log_prob(z)
 
 
