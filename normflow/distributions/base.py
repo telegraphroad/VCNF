@@ -66,16 +66,16 @@ class GMM(nn.Module):
         return trsf.expand(self.n_cell, self.dim)
     
     def forward(self, num_samples=1):
-        means = self.trsf_gridm()
-        std = self.trsf_gridv()
-        mix = D.Categorical(self.weight)
-        comp = D.Independent(D.Normal(means, std+0.001), 1)
-        self.gmm = D.MixtureSameFamily(mix, comp)
         samples = self.gmm.sample([num_samples])
         return samples, self.gmm.log_prob(samples)
 
     def log_prob(self, z):
         #print('~~~0',self.loc.is_leaf,self.scale.is_leaf,self.w.is_leaf)
+        means = self.trsf_gridm()
+        std = self.trsf_gridv()
+        mix = D.Categorical(self.weight)
+        comp = D.Independent(D.Normal(means, std+0.001), 1)
+        self.gmm = D.MixtureSameFamily(mix, comp)
 
         return self.gmm.log_prob(z)
 
