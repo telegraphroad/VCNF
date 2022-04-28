@@ -66,7 +66,8 @@ class GMM(nn.Module):
         return trsf.expand(self.n_cell, self.dim)
     
     def forward(self, num_samples=1):
-        samples = self.gmm.sample([num_samples])
+        with torch.no_grad()
+            samples = self.gmm.sample([num_samples]).double()
         return samples, self.gmm.log_prob(samples)
 
     def log_prob(self, z):
