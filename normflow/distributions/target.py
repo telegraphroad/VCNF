@@ -68,6 +68,9 @@ class NealsFunnel(Target):
         super().__init__()
         self.n_dims = 2
         self.max_log_prob = 0.
+        self.register_buffer("prop_scale", prop_scale)
+        self.register_buffer("prop_shift", prop_shift)
+
 
     # def sample(self, num_samples=1):
     #     """
