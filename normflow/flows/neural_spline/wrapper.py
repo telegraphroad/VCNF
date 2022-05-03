@@ -8,6 +8,7 @@ from .autoregressive import MaskedPiecewiseRationalQuadraticAutoregressive
 from ...nets.resnet import ResidualNet
 from ...utils.masks import create_alternating_binary_mask
 from ...utils.nn import PeriodicFeatures
+from ...utils.splines import DEFAULT_MIN_DERIVATIVE
 
 
 
@@ -102,7 +103,9 @@ class CircularCoupledRationalQuadraticSpline(Flow):
             tail_bound=3.,
             activation=nn.ReLU,
             dropout_probability=0.,
-            reverse_mask=False
+            reverse_mask=False,
+            mask=None,
+            init_identity=True
     ):
         """
         Constructor
@@ -124,11 +127,16 @@ class CircularCoupledRationalQuadraticSpline(Flow):
         :type dropout_probability: Float
         :param reverse_mask: Flag whether the reverse mask should be used
         :type reverse_mask: Boolean
+        :param mask: Mask to be used, alternating masked generated is None
+        :param mask: torch tensor
+        :param init_identity: Flag, initialize transform as identity
+        :type init_identity: Boolean
         """
         super().__init__()
 
-        mask = create_alternating_binary_mask(num_input_channels,
-                                              even=reverse_mask)
+        if mask is None:
+            mask = create_alternating_binary_mask(num_input_channels,
+                                                  even=reverse_mask)
         features_vector = torch.arange(num_input_channels)
         identity_features = features_vector.masked_select(mask <= 0)
         ind_circ_id = []
@@ -146,7 +154,7 @@ class CircularCoupledRationalQuadraticSpline(Flow):
                 pf = PeriodicFeatures(in_features, ind_circ_id, scale_pf)
             else:
                 pf = None
-            return ResidualNet(
+            net = ResidualNet(
                 in_features=in_features,
                 out_features=out_features,
                 context_features=None,
@@ -157,6 +165,12 @@ class CircularCoupledRationalQuadraticSpline(Flow):
                 use_batch_norm=False,
                 preprocessing=pf
             )
+            if init_identity:
+                torch.nn.init.constant_(net.final_layer.weight, 0.)
+                torch.nn.init.constant_(net.final_layer.bias,
+                                        np.log(np.exp(1 - DEFAULT_MIN_DERIVATIVE) - 1))
+            return net
+
 
         tails = ['circular' if i in ind_circ else 'linear'
                  for i in range(num_input_channels)]
@@ -167,8 +181,6 @@ class CircularCoupledRationalQuadraticSpline(Flow):
             num_bins=num_bins,
             tails=tails,
             tail_bound=tail_bound,
-
-            # Setting True corresponds to equations (4), (5), (6) in the NSF paper:
             apply_unconditional_transform=True
         )
 
