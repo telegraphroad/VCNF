@@ -34,7 +34,7 @@ class NormalizingFlow(nn.Module):
         log_q += self.q0.log_prob(z)
         return -torch.mean(log_q)
 
-    def reverse_kld(self, num_samples=1, beta=1., score_fn=True):
+    def reverse_kld(self, num_samples=1, beta=1., score_fn=True, extended = False):
         """
         Estimates reverse KL divergence, see arXiv 1912.02762
         :param num_samples: Number of samples to draw from base distribution
@@ -46,8 +46,13 @@ class NormalizingFlow(nn.Module):
         z, log_q_ = self.q0(num_samples)
         log_q = torch.zeros_like(log_q_)
         log_q += log_q_
+        zarr = []
+        zparr = []
         for flow in self.flows:
             z, log_det = flow(z)
+            if extended:
+                zarr.append(z.cpu().detach().numpy())
+                zparr.append(log_det.cpu().detach().numpy())
             log_q -= log_det
         if not score_fn:
             z_ = z
@@ -59,9 +64,11 @@ class NormalizingFlow(nn.Module):
             log_q += self.q0.log_prob(z_)
             utils.set_requires_grad(self, True)
         log_p = self.p.log_prob(z)
-        return torch.mean(log_q) - beta * torch.mean(log_p)
-
-    def reverse_alpha_div(self, num_samples=1, alpha=1, dreg=False):
+        if extended:
+            return torch.mean(log_q) - beta * torch.mean(log_p), zarr, zparr
+        else:
+            return torch.mean(log_q) - beta * torch.mean(log_p)
+    def reverse_alpha_div(self, num_samples=1, alpha=1, dreg=False, extended = False):
         """
         Alpha divergence when sampling from q
         :param num_samples: Number of samples to draw
@@ -70,7 +77,13 @@ class NormalizingFlow(nn.Module):
         :return: Alpha divergence
         """
         z, log_q = self.q0(num_samples)
+        zarr = []
+        zparr = []
+        
         for flow in self.flows:
+            if extended:
+                zarr.append(z.cpu().detach().numpy())
+                zparr.append(log_det.cpu().detach().numpy())
             z, log_det = flow(z)
             log_q -= log_det
         log_p = self.p.log_prob(z)
@@ -92,7 +105,10 @@ class NormalizingFlow(nn.Module):
         else:
             loss = -torch.logsumexp(alpha * (log_p - log_q), 0) + \
                 math.log(log_p.shape[0])
-        return loss
+        if extended:
+            return loss, zarr, zparr
+        else:
+            return loss
 
     def sample(self, num_samples=1):
         """
