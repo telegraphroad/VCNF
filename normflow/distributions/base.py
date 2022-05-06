@@ -32,6 +32,57 @@ class BaseDistribution(nn.Module):
         raise NotImplementedError
 
 
+# class GMM(nn.Module):
+    
+#     def __init__(self, weights, mbase,vbase, scale, n_cell=8, shift=0, dim=2, trainable=False):
+#         super(GMM, self).__init__()
+#         self.weight = nn.Parameter(weights, requires_grad = False)
+#         self.mbase = nn.Parameter(mbase, requires_grad = True)
+#         self.vbase = nn.Parameter(vbase, requires_grad = False)
+#         self.scale = nn.Parameter(scale, requires_grad = False)
+#         self.grid = torch.arange(1, n_cell+1,device='cuda')
+#         self.shift = shift
+#         self.n_cell = n_cell
+#         self.dim = dim
+#         with torch.no_grad():
+#             means = self.trsf_gridm()
+#             std = self.trsf_gridv()
+#             mix = D.Categorical(self.weight)
+#             comp = D.Independent(D.Normal(means, std+0.001), 1)
+#             self.gmm = D.MixtureSameFamily(mix, comp)
+
+    
+#     def trsf_gridm(self):
+#         trsf = (
+#             torch.log(self.scale * self.grid + self.shift) 
+#             / torch.log(self.mbase)
+#             ).reshape(-1, 1)
+
+#         return trsf.expand(self.n_cell, self.dim)
+
+#     def trsf_gridv(self):
+#         trsf = (
+#             torch.log(self.scale * self.grid + self.shift) 
+#             / torch.log(self.vbase)
+#             ).reshape(-1, 1)
+#         return trsf.expand(self.n_cell, self.dim)
+    
+#     def forward(self, num_samples=1):
+
+#         means = self.trsf_gridm() 
+#         std = self.trsf_gridv()
+#         mix = D.Categorical(self.weight)
+#         comp = D.Independent(D.Normal(means, std+0.001), 1)
+#         self.gmm = D.MixtureSameFamily(mix, comp)
+#         with torch.no_grad():
+#             samples = self.gmm.sample([num_samples]).double()
+#         return samples, self.gmm.log_prob(samples)
+
+#     def log_prob(self, z):
+#         #print('~~~0',self.loc.is_leaf,self.scale.is_leaf,self.w.is_leaf)
+#         return self.gmm.log_prob(z)
+
+
 class GMM(nn.Module):
     
     def __init__(self, weights, mbase,vbase, scale, n_cell=8, shift=0, dim=2, trainable=False):
@@ -40,7 +91,7 @@ class GMM(nn.Module):
         self.mbase = nn.Parameter(mbase, requires_grad = True)
         self.vbase = nn.Parameter(vbase, requires_grad = False)
         self.scale = nn.Parameter(scale, requires_grad = False)
-        self.grid = torch.arange(1, n_cell+1,device='cuda')
+        self.grid = torch.arange(1, (n_cell+1)/2,device='cuda')
         self.shift = shift
         self.n_cell = n_cell
         self.dim = dim
@@ -53,18 +104,15 @@ class GMM(nn.Module):
 
     
     def trsf_gridm(self):
-        trsf = (
-            torch.log(self.scale * self.grid + self.shift) 
-            / torch.log(self.mbase)
-            ).reshape(-1, 1)
-
+        trsf = torch.pow(self.mbase, self.grid)
+        trsf = self.scale * (trsf - trsf.min())/(trsf.max()-trsf.min())
+        trsf = torch.concat([-trsf,trsf]).sort()[0].reshape(-1,1)
         return trsf.expand(self.n_cell, self.dim)
 
     def trsf_gridv(self):
-        trsf = (
-            torch.log(self.scale * self.grid + self.shift) 
-            / torch.log(self.vbase)
-            ).reshape(-1, 1)
+        trsf = torch.pow(self.vbase, self.grid)
+        trsf = self.scale * (trsf - trsf.min())/(trsf.max()-trsf.min())
+        trsf = torch.concat([torch.flip(trsf,[0]),trsf]).abs().reshape(-1,1)
         return trsf.expand(self.n_cell, self.dim)
     
     def forward(self, num_samples=1):
@@ -81,7 +129,6 @@ class GMM(nn.Module):
     def log_prob(self, z):
         #print('~~~0',self.loc.is_leaf,self.scale.is_leaf,self.w.is_leaf)
         return self.gmm.log_prob(z)
-
 
 
 class MultivariateGaussian(BaseDistribution):
