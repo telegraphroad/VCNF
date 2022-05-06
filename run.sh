@@ -6,7 +6,7 @@ do
 		do
 			for mb in 1.001 1.021 1.081 1.101
 			do
-				for nc in 2 4 10 20 50 100 500 1000
+				for nc in 4 10 20 50 100 500 1000
 				do
 					for tr in 1 0
 					do

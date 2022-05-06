@@ -105,11 +105,8 @@ class GMM(nn.Module):
     
     def trsf_gridm(self):
         trsf = torch.pow(self.mbase, self.grid)
-        print(1,trsf)
         trsf = self.scale * (trsf - trsf.min())/(trsf.max()-trsf.min())
-        print(2,trsf)
         trsf = torch.concat([-trsf,trsf]).sort()[0].reshape(-1,1)
-        print(3,trsf)
         return trsf.expand(self.n_cell, self.dim)
 
     def trsf_gridv(self):
@@ -130,8 +127,9 @@ class GMM(nn.Module):
         return samples, self.gmm.log_prob(samples)
 
     def log_prob(self, z):
-        #print('~~~0',self.loc.is_leaf,self.scale.is_leaf,self.w.is_leaf)
+        print('~~~0',self.mbase)
         return self.gmm.log_prob(z)
+
 
 
 class MultivariateGaussian(BaseDistribution):
