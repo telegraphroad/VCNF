@@ -34,7 +34,7 @@ class BaseDistribution(nn.Module):
 
 class GMM(nn.Module):
     
-    def __init__(self, weights, mbase,vbase, scale, n_cell=8, shift=0, dim=2):
+    def __init__(self, weights, mbase,vbase, scale, n_cell=8, shift=0, dim=2, trainable=False):
         super(GMM, self).__init__()
         self.weight = nn.Parameter(weights, requires_grad = False)
         self.mbase = nn.Parameter(mbase, requires_grad = True)
