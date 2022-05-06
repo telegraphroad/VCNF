@@ -127,7 +127,7 @@ class GMM(nn.Module):
         return samples, self.gmm.log_prob(samples)
 
     def log_prob(self, z):
-        print('~~~0',self.mbase)
+        #print('~~~0',self.mbase)
         return self.gmm.log_prob(z)
 
 
