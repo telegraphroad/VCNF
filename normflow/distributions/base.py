@@ -57,7 +57,7 @@ class GMM(nn.Module):
             torch.log(self.scale * self.grid + self.shift) 
             / torch.log(self.mbase)
             ).reshape(-1, 1)
-        trsf = trsf - trsf.min()
+
         return trsf.expand(self.n_cell, self.dim)
 
     def trsf_gridv(self):
@@ -65,7 +65,6 @@ class GMM(nn.Module):
             torch.log(self.scale * self.grid + self.shift) 
             / torch.log(self.vbase)
             ).reshape(-1, 1)
-        trsf = trsf - trsf.min()
         return trsf.expand(self.n_cell, self.dim)
     
     def forward(self, num_samples=1):
