@@ -105,8 +105,11 @@ class GMM(nn.Module):
     
     def trsf_gridm(self):
         trsf = torch.pow(self.mbase, self.grid)
+        print(1,trsf)
         trsf = self.scale * (trsf - trsf.min())/(trsf.max()-trsf.min())
+        print(2,trsf)
         trsf = torch.concat([-trsf,trsf]).sort()[0].reshape(-1,1)
+        print(3,trsf)
         return trsf.expand(self.n_cell, self.dim)
 
     def trsf_gridv(self):
