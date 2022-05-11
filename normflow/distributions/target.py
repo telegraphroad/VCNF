@@ -65,10 +65,12 @@ class NealsFunnel(Target):
     Bimodal two-dimensional distribution
     """
     def __init__(self,prop_scale=torch.tensor(20.),
-                 prop_shift=torch.tensor(-10.)):
+                 prop_shift=torch.tensor(-10.), v1shift = 0., v2shift = 0.):
         super().__init__()
         self.n_dims = 2
         self.max_log_prob = 0.
+        self.v1shift = v1shift
+        self.v2shift = v2shift
         self.register_buffer("prop_scale", prop_scale)
         self.register_buffer("prop_shift", prop_shift)
 
@@ -95,8 +97,8 @@ class NealsFunnel(Target):
         #print('++++++++++',z)
         v = z[:,0].cpu()
         x = z[:,1].cpu()
-        v_like = Normal(torch.tensor([0.0]).cpu(), torch.tensor([1.0]).cpu()).log_prob(v).cpu()
-        x_like = Normal(torch.tensor([0.0]).cpu(), torch.exp(0.5*v).cpu()).log_prob(x).cpu()
+        v_like = Normal(torch.tensor([0.0]).cpu(), torch.tensor([1.0]).cpu() + self.v1shift).log_prob(v).cpu()
+        x_like = Normal(torch.tensor([0.0]).cpu(), torch.exp(0.5*v).cpu() + self.v2shift).log_prob(x).cpu()
         return v_like + x_like
 
 
