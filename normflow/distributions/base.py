@@ -37,7 +37,7 @@ class GMM(nn.Module):
     def __init__(self, weights, mbase,vbase, scale, n_cell=8, shift=0, dim=2, trainable=False):
         super(GMM, self).__init__()
         self.weight = nn.Parameter(weights, requires_grad = False)
-        self.mbase = nn.Parameter(mbase, requires_grad = True)
+        self.mbase = nn.Parameter(mbase, requires_grad = trainable)
         self.vbase = nn.Parameter(vbase, requires_grad = False)
         self.scale = nn.Parameter(scale, requires_grad = False)
         self.grid = torch.arange(1, n_cell+1,device='cuda')
@@ -88,7 +88,7 @@ class GMM(nn.Module):
 #     def __init__(self, weights, mbase,vbase, scale, n_cell=8, shift=0, dim=2, trainable=False):
 #         super(GMM, self).__init__()
 #         self.weight = nn.Parameter(weights, requires_grad = False)
-#         self.mbase = nn.Parameter(mbase, requires_grad = True)
+#         self.mbase = nn.Parameter(mbase, requires_grad = trainable)
 #         self.vbase = nn.Parameter(vbase, requires_grad = False)
 #         self.scale = nn.Parameter(scale, requires_grad = False)
 #         self.grid = torch.arange(1, (n_cell+1)/2,device='cuda')
@@ -136,7 +136,7 @@ class MultivariateGaussian(BaseDistribution):
     """
     Multivariate Gaussian distribution with diagonal covariance matrix
     """
-    def __init__(self, n_dim=2, n_components = 3, trainable=False):
+    def __init__(self, n_dim=2, n_components = 3, trainable=False, loc = 0., scale = 1.0):
         """
         Constructor
         :param shape: Tuple with shape of data, if int shape has one dimension
@@ -149,8 +149,8 @@ class MultivariateGaussian(BaseDistribution):
         with torch.no_grad():
             if trainable:
                 
-                self.loc = nn.Parameter(torch.zeros(self.n_dim,dtype=torch.double,device='cuda'), requires_grad = True)
-                self.scale = nn.Parameter(torch.eye(self.n_dim,dtype=torch.double,device='cuda'), requires_grad = True)
+                self.loc = nn.Parameter(torch.zeros(self.n_dim,dtype=torch.double,device='cuda') + loc, requires_grad = True)
+                self.scale = nn.Parameter(torch.eye(self.n_dim,dtype=torch.double,device='cuda') + scale, requires_grad = True)
             else:
                 
                 self.register_buffer("loc", torch.zeros(self.n_dim,dtype=torch.double,device='cuda'))

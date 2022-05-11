@@ -1,16 +1,16 @@
-for nunit in 2 4 8 16 64
+for nunit in 4 8 16 32
 do
-	for sc in 100.
+	for sc in 1.
 	do
-		for cb in 1.001 1.021 1.081 1.101
+		for tr in 0 1
 		do
-			for mb in 1.001 1.021 1.081 1.101
+			for nc in 100 10 4
 			do
-				for nc in 4 10 20 50 100 500 1000
+				for mb in 10. 50.
 				do
-					for tr in 1 0
+					for cb in 1.1 
 					do
-						python run.py -cb "$cb" -mb "$mb"  -sc "$sc" -nc "$nc" -trainable "$tr" -nu "$nunit"
+						python run.py -cb "$mb" -mb "$mb"  -sc "$sc" -nc "$nc" -trainable "$tr" -nu "$nunit"
 					done
 				done
 			done

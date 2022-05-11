@@ -39,9 +39,9 @@ print(cb,mb,sc,nc)
 #     for mb in [1.0001,2.,3.,10.,50.]:
 #         for sc in [1.,2.,3.,4.,5.]:
 #             for nc in [2,3,4,5,6,7,8,9,10,12,15,20,25,30,40,50,100,200,300,500,1000]:        
-max_iter = 20000
+max_iter = 10000
 num_samples = 2 * 12
-anneal_iter = 6000
+anneal_iter = 7000
 annealing = True
 show_iter = 1000
 # nc = 3

@@ -13,9 +13,35 @@ import traceback
 
 # Define flows
 
+import argparse
+ 
+parser = argparse.ArgumentParser(description="Just an example",
+                                 formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+parser.add_argument("-cb", "--cbase")
+parser.add_argument("-mb", "--mbase")
+parser.add_argument("-sc", "--scale")
+parser.add_argument("-nc", "--ncomp")
+parser.add_argument("-nu", "--nunit")
+parser.add_argument("-trainable", "--trainablebase")
+
+args = parser.parse_args()
+config = vars(args)
+print(config)
+cb = float(args.cbase)
+mb = float(args.mbase)
+sc = float(args.scale)
+nc = int(args.ncomp)
+nu = int(args.nunit)
+tparam = bool(int(args.trainablebase))
+print(cb,mb,sc,nc)
+
+# for cb in [1.0001,2.,3.,10.,50.]:
+#     for mb in [1.0001,2.,3.,10.,50.]:
+#         for sc in [1.,2.,3.,4.,5.]:
+#             for nc in [2,3,4,5,6,7,8,9,10,12,15,20,25,30,40,50,100,200,300,500,1000]:        
 max_iter = 10000
 num_samples = 2 * 12
-anneal_iter = 10000
+anneal_iter = 7000
 annealing = True
 show_iter = 1000
 # nc = 3
@@ -23,7 +49,7 @@ show_iter = 1000
 # cb = 1.00015
 # scale = 1.
 
-K = 64
+K = nu
 torch.manual_seed(0)
 
 latent_size = 2
@@ -42,14 +68,17 @@ for i in range(K):
 prior = nf.distributions.target.NealsFunnel()
 #q0 = nf.distributions.DiagGaussian(2)
 q0 = nf.distributions.base.MultivariateGaussian()
-q1 = deepcopy(q0)
 
-# weight = torch.ones(nc,device='cuda')
-# mbase = torch.tensor(mb,device='cuda')
-# vbase = torch.tensor(cb,device='cuda')
-# scale = torch.tensor(sc,device='cuda')
 
-# q0 = nf.distributions.base.GMM(weights=weight, mbase=mbase, vbase=vbase, scale=scale,n_cell = nc)
+weight = torch.ones(nc,device='cuda')
+mbase = torch.tensor(mb,device='cuda')
+vbase = torch.tensor(cb,device='cuda')
+scale = torch.tensor(sc,device='cuda')
+
+q0 = nf.distributions.base.GMM(weights=weight, mbase=mbase, vbase=vbase, scale=scale,n_cell = nc,trainable = tparam)
+q0 = nf.distributions.base.MultivariateGaussian(trainable = tparam)
+
+q1 = q0            
 
 # Construct flow model
 nfm = nf.NormalizingFlow(q0=q0, flows=flows, p=prior)
@@ -86,14 +115,17 @@ loss_hist = np.array([])
 optimizer = torch.optim.Adam(nfm.parameters(), lr=1e-4, weight_decay=1e-6)
 sample0,_ = nfm.sample(90000)
 sample0 = pd.DataFrame(sample0.cpu().detach().numpy())
-
-
+gzarr = []
+gzparr = []
+phist = []
 for it in tqdm(range(max_iter)):
-    oldm = deepcopy(nfm)
+    oldm = nfm.state_dict
     try:
         optimizer.zero_grad()
         if annealing:
-            loss = nfm.reverse_kld(num_samples, beta=np.min([1., 0.001 + it / anneal_iter]))
+            loss,zarr,zparr = nfm.reverse_kld(num_samples, beta=np.min([1., 0.001 + it / anneal_iter]), extended = True)
+            gzarr.append(zarr)
+            gzparr.append(zparr)
         else:
             loss = nfm.reverse_alpha_div(num_samples, dreg=True, alpha=1)
 
@@ -102,6 +134,8 @@ for it in tqdm(range(max_iter)):
             optimizer.step()
 
         loss_hist = np.append(loss_hist, loss.to('cpu').data.numpy())
+        phist.append([nfm.q0.loc.detach().cpu().numpy(),nfm.q0.scale.detach().cpu().numpy()])
+        #print(nfm.q0.mbase.detach().cpu().item())
 
         # Plot learned posterior
         # if (it + 1) % show_iter == 0:
@@ -117,26 +151,31 @@ for it in tqdm(range(max_iter)):
     except Exception as e:
         print(e)
         traceback.print_exc()                        
-        nfm = oldm
+        nfm.state_dict = oldm
 
 
 # Plot learned posterior distribution
-log_prob = nfm.log_prob(zz).to('cpu').view(*xx.shape)
-prob = torch.exp(log_prob)
-prob[torch.isnan(prob)] = 0
+# log_prob = nfm.log_prob(zz).to('cpu').view(*xx.shape)
+# prob = torch.exp(log_prob)
+# prob[torch.isnan(prob)] = 0
 
 
-sample1 = pd.DataFrame(prior.sample(90000).cpu().detach().numpy())
-sample2,_ = nfm.sample(90000)
+sample1 = pd.DataFrame(prior.sample(20000).cpu().detach().numpy())
+sample2,_ = nfm.sample(20000)
 sample2 = pd.DataFrame(sample2.cpu().detach().numpy())
-sample3,_ = q1.forward(60000)
+sample3,_ = q1.forward(20000)
 sample3 = pd.DataFrame(sample3.detach().cpu().numpy())
-sample4,_ = nfm.q0.forward(60000)
+sample4,_ = nfm.q0.forward(20000)
 sample4 = pd.DataFrame(sample4.detach().cpu().numpy())
 
-torch.save(nfm, f'/home/samiri/PhD/Synth/VCNF/logs/model_nc_{nc}_cb_{cb}_mb_{mb}_scale_{sc}.pth')
-sample0.to_csv(f'/home/samiri/PhD/Synth/VCNF/logs/untrainedmodel_nc_{nc}_cb_{cb}_mb_{mb}_scale_{sc}.pth')
-sample1.to_csv(f'/home/samiri/PhD/Synth/VCNF/logs/target_nc_{nc}_cb_{cb}_mb_{mb}_scale_{sc}.pth')
-sample2.to_csv(f'/home/samiri/PhD/Synth/VCNF/logs/trainedmodel_nc_{nc}_cb_{cb}_mb_{mb}_scale_{sc}.pth')
-sample3.to_csv(f'/home/samiri/PhD/Synth/VCNF/logs/untrainedbase_{nc}_cb_{cb}_mb_{mb}_scale_{sc}.pth')
-sample4.to_csv(f'/home/samiri/PhD/Synth/VCNF/logs/trainedbase_nc_{nc}_cb_{cb}_mb_{mb}_scale_{sc}.pth')
+torch.save(nfm, f'/home/samiri/PhD/Synth/VCNF/logs/model_nc_{nc}_cb_{cb}_mb_{mb}_scale_{sc}_trainable_{tparam}_nunit_{nu}.pth')
+sample0.to_csv(f'/home/samiri/PhD/Synth/VCNF/logs/untrainedmodel_nc_{nc}_cb_{cb}_mb_{mb}_scale_{sc}_trainable_{tparam}_nunit_{nu}.pth')
+sample1.to_csv(f'/home/samiri/PhD/Synth/VCNF/logs/target_nc_{nc}_cb_{cb}_mb_{mb}_scale_{sc}_trainable_{tparam}_nunit_{nu}.pth')
+sample2.to_csv(f'/home/samiri/PhD/Synth/VCNF/logs/trainedmodel_nc_{nc}_cb_{cb}_mb_{mb}_scale_{sc}_trainable_{tparam}_nunit_{nu}.pth')
+sample3.to_csv(f'/home/samiri/PhD/Synth/VCNF/logs/untrainedbase_{nc}_cb_{cb}_mb_{mb}_scale_{sc}_trainable_{tparam}_nunit_{nu}.pth')
+sample4.to_csv(f'/home/samiri/PhD/Synth/VCNF/logs/trainedbase_nc_{nc}_cb_{cb}_mb_{mb}_scale_{sc}_trainable_{tparam}_nunit_{nu}.pth')
+pd.DataFrame(loss_hist).to_csv(f'/home/samiri/PhD/Synth/VCNF/logs/losshist_nc_{nc}_cb_{cb}_mb_{mb}_scale_{sc}_trainable_{tparam}_nunit_{nu}.pth')
+pd.DataFrame(gzarr).to_csv(f'/home/samiri/PhD/Synth/VCNF/logs/z_nc_{nc}_cb_{cb}_mb_{mb}_scale_{sc}_trainable_{tparam}_nunit_{nu}.pth')
+pd.DataFrame(gzparr).to_csv(f'/home/samiri/PhD/Synth/VCNF/logs/zp_nc_{nc}_cb_{cb}_mb_{mb}_scale_{sc}_trainable_{tparam}_nunit_{nu}.pth')
+pd.DataFrame(phist).to_csv(f'/home/samiri/PhD/Synth/VCNF/logs/phist_nc_{nc}_cb_{cb}_mb_{mb}_scale_{sc}_trainable_{tparam}_nunit_{nu}.pth')
+
