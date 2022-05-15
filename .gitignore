@@ -5,6 +5,7 @@ __pycache__/
 logsold/
 nlogsdiag/
 nlogsgmm/
+log*/
 # C extensions
 *.so
 logs/

@@ -22,6 +22,7 @@ parser.add_argument("-mb", "--mbase")
 parser.add_argument("-sc", "--scale")
 parser.add_argument("-nc", "--ncomp")
 parser.add_argument("-nu", "--nunit")
+parser.add_argument("-b", "--base")
 parser.add_argument("-trainable", "--trainablebase")
 
 args = parser.parse_args()
@@ -33,15 +34,16 @@ sc = float(args.scale)
 nc = int(args.ncomp)
 nu = int(args.nunit)
 tparam = bool(int(args.trainablebase))
-print(cb,mb,sc,nc)
+based = str(args.base)
+print(cb,mb,sc,nc,nu,tparam,based)
 
 # for cb in [1.0001,2.,3.,10.,50.]:
 #     for mb in [1.0001,2.,3.,10.,50.]:
 #         for sc in [1.,2.,3.,4.,5.]:
 #             for nc in [2,3,4,5,6,7,8,9,10,12,15,20,25,30,40,50,100,200,300,500,1000]:        
-max_iter = 10000
+max_iter = 20000
 num_samples = 2 * 12
-anneal_iter = 7000
+anneal_iter = 15000
 annealing = True
 show_iter = 1000
 # nc = 3
@@ -65,7 +67,7 @@ for i in range(K):
     flows += [nf.flows.ActNorm(latent_size)]
 
 # Set prior and q0
-prior = nf.distributions.target.NealsFunnel()
+prior = nf.distributions.target.NealsFunnel(v1shift = 2., v2shift = 0.)
 #q0 = nf.distributions.DiagGaussian(2)
 q0 = nf.distributions.base.MultivariateGaussian()
 
@@ -75,8 +77,22 @@ mbase = torch.tensor(mb,device='cuda')
 vbase = torch.tensor(cb,device='cuda')
 scale = torch.tensor(sc,device='cuda')
 
-q0 = nf.distributions.base.GMM(weights=weight, mbase=mbase, vbase=vbase, scale=scale,n_cell = nc,trainable = tparam)
-q1 = deepcopy(q0)                
+#q0 = nf.distributions.base.GMM(weights=weight, mbase=mbase, vbase=vbase, scale=scale,n_cell = nc,trainable = tparam)
+print('~~~~~~~~',based)
+if based == 'GaussianMixture':
+    q0 = nf.distributions.base.GaussianMixture(n_modes = nc, dim = 2, trainable=tparam)
+    q1 = nf.distributions.base.GaussianMixture(n_modes = nc, dim = 2, trainable=tparam)
+elif based == 'GMM':
+    q0 = nf.distributions.base.GMM(weights=weight, mbase=mbase, vbase=vbase, scale=scale,n_cell = nc,trainable = tparam)
+    q1 = nf.distributions.base.GMM(weights=weight, mbase=mbase, vbase=vbase, scale=scale,n_cell = nc,trainable = tparam)
+
+elif based == 'MultivariateGaussian':
+    q0 = nf.distributions.base.MultivariateGaussian(trainable=tparam)
+    q1 = nf.distributions.base.MultivariateGaussian(trainable=tparam)
+
+with torch.no_grad():
+    sample3,_ = q1.forward(20000)
+    sample3 = pd.DataFrame(sample3.detach().cpu().numpy())
 
 # Construct flow model
 nfm = nf.NormalizingFlow(q0=q0, flows=flows, p=prior)
@@ -128,11 +144,21 @@ for it in tqdm(range(max_iter)):
             loss = nfm.reverse_alpha_div(num_samples, dreg=True, alpha=1)
 
         if ~(torch.isnan(loss) | torch.isinf(loss)):
-            loss.backward()
+            loss.backward(retain_graph=True)
             optimizer.step()
 
         loss_hist = np.append(loss_hist, loss.to('cpu').data.numpy())
-        phist.append([nfm.q0.mbase.detach().cpu().item(),nfm.q0.vbase.detach().cpu().item(),nfm.q0.scale.detach().cpu().item(),nfm.q0.weight.detach().cpu().numpy()])
+        if based == 'GaussianMixture':
+            phist.append([nfm.q0.loc.detach().cpu().numpy(),nfm.q0.log_scale.detach().cpu().numpy(),nfm.q0.weight_scores.detach().cpu().numpy()])
+
+        elif based == 'GMM':
+            phist.append([nfm.q0.mbase.detach().cpu().item(),nfm.q0.vbase.detach().cpu().item(),nfm.q0.scale.detach().cpu().item(),nfm.q0.weight.detach().cpu().numpy()])
+
+        elif based == 'MultivariateGaussian':
+            phist.append([nfm.q0.loc.detach().cpu().numpy(),nfm.q0.scale.detach().cpu().numpy()])
+
+        #
+        
         #print(nfm.q0.mbase.detach().cpu().item())
 
         # Plot learned posterior
@@ -161,8 +187,6 @@ for it in tqdm(range(max_iter)):
 sample1 = pd.DataFrame(prior.sample(20000).cpu().detach().numpy())
 sample2,_ = nfm.sample(20000)
 sample2 = pd.DataFrame(sample2.cpu().detach().numpy())
-sample3,_ = q1.forward(20000)
-sample3 = pd.DataFrame(sample3.detach().cpu().numpy())
 sample4,_ = nfm.q0.forward(20000)
 sample4 = pd.DataFrame(sample4.detach().cpu().numpy())
 

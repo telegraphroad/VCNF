@@ -1,4 +1,4 @@
-for nunit in 4 8 16
+for nunit in 4 8 16 96
 do
 	for sc in 1.
 	do

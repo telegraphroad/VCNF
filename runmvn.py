@@ -65,7 +65,7 @@ for i in range(K):
     flows += [nf.flows.ActNorm(latent_size)]
 
 # Set prior and q0
-prior = nf.distributions.target.NealsFunnel()
+prior = nf.distributions.target.NealsFunnel(v1shift = 50., v2shift = 0.)
 #q0 = nf.distributions.DiagGaussian(2)
 q0 = nf.distributions.base.MultivariateGaussian()
 
@@ -76,9 +76,9 @@ vbase = torch.tensor(cb,device='cuda')
 scale = torch.tensor(sc,device='cuda')
 
 q0 = nf.distributions.base.GMM(weights=weight, mbase=mbase, vbase=vbase, scale=scale,n_cell = nc,trainable = tparam)
-q0 = nf.distributions.base.MultivariateGaussian(trainable = tparam)
+q0 = q1 = nf.distributions.base.MultivariateGaussian(trainable = tparam,loc=0.,scale=0.)
 
-q1 = q0            
+
 
 # Construct flow model
 nfm = nf.NormalizingFlow(q0=q0, flows=flows, p=prior)
@@ -130,7 +130,7 @@ for it in tqdm(range(max_iter)):
             loss = nfm.reverse_alpha_div(num_samples, dreg=True, alpha=1)
 
         if ~(torch.isnan(loss) | torch.isinf(loss)):
-            loss.backward()
+            loss.backward(retain_graph=True)
             optimizer.step()
 
         loss_hist = np.append(loss_hist, loss.to('cpu').data.numpy())
