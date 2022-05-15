@@ -36,7 +36,7 @@ class GMM(nn.Module):
     
     def __init__(self, weights, mbase,vbase, scale, n_cell=8, shift=0, dim=2, trainable=False):
         super(GMM, self).__init__()
-        self.weight = nn.Parameter(weights, requires_grad = False)
+        self.weight = nn.Parameter(weights, requires_grad = True)
         self.mbase = nn.Parameter(mbase, requires_grad = True)
         self.vbase = nn.Parameter(vbase, requires_grad = True)
         self.scale = nn.Parameter(scale, requires_grad = False)
