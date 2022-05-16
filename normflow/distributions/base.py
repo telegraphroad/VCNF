@@ -682,7 +682,9 @@ class GaussianMixture(BaseDistribution):
         self.dim = dim
 
         if loc is None:
-            loc = np.random.randn(self.n_modes, self.dim)
+            a = np.linspace(-10, 10, self.n_modes)
+            #loc = np.random.randn(self.n_modes, self.dim)#np.vstack([a]*4).T
+            loc = np.vstack([a] * self.dim).T
         loc = np.array(loc)[None, ...]
         if scale is None:
             scale = np.ones((self.n_modes, self.dim))
