@@ -4,7 +4,7 @@ do
 	do
 		for tr in 1 0
 		do
-			for nc in 4 10 100 500
+			for nc in 500 100 10 4
 			do
 				for mb in 10000000.
 				do
