@@ -10,7 +10,7 @@ do
 				do
 					for cb in 1.1 
 					do
-						for b in "MultivariateGaussian" "GaussianMixture" "GMM"
+						for b in "GaussianMixture" "MultivariateGaussian" "GMM"
 						do
 							python run.py -cb "$mb" -mb "$mb"  -sc "$sc" -nc "$nc" -trainable "$tr" -nu "$nunit" -b "$b"
 						done
