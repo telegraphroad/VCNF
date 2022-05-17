@@ -691,7 +691,7 @@ class GaussianMixture(BaseDistribution):
             scale = np.ones((self.n_modes, self.dim))
         scale = np.array(scale)[None, ...]
         if weights is None:
-            weights = np.ones(self.n_modes)
+            weights = np.ones(self.n_modes) + 1.
         weights = np.array(weights)[None, ...]
         weights /= weights.sum(1)
 
