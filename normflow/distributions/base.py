@@ -495,7 +495,7 @@ class T(BaseDistribution):
     """
     Multivariate Gaussian distribution with diagonal covariance matrix
     """
-    def __init__(self, n_dim=2, df = 2. trainable=False):
+    def __init__(self, n_dim=2, df = 2., trainable=False):
         """
         Constructor
         :param shape: Tuple with shape of data, if int shape has one dimension
