@@ -511,7 +511,7 @@ class T(BaseDistribution):
             if trainable:
                 self.df = nn.Parameter(torch.zeros((self.n_dim,),dtype=torch.double,device='cuda') + self.df, requires_grad = True)
             else:
-                self.register_buffer("df", torch.ones((self.n_dim,) + self.df.,dtype=torch.double,device='cuda'))
+                self.register_buffer("df", torch.ones((self.n_dim,) + self.df,dtype=torch.double,device='cuda'))
 
         self.t = D.StudentT(self.df)#univ
         #print('~~~1',self.gmm.mixture_distribution.probs)
