@@ -43,7 +43,7 @@ print(cb,mb,sc,nc,nu,tparam,based)
 #             for nc in [2,3,4,5,6,7,8,9,10,12,15,20,25,30,40,50,100,200,300,500,1000]:        
 max_iter = 20000
 num_samples = 2 ** 12
-anneal_iter = 8000
+anneal_iter = 15000
 annealing = True
 show_iter = 100
 # nc = 3
@@ -73,7 +73,7 @@ q0 = nf.distributions.base.MultivariateGaussian()
 
 
 weight = torch.ones(nc,device='cuda')
-mbase = torch.tensor(100000000.,device='cuda')
+mbase = torch.tensor(mb,device='cuda')
 vbase = torch.tensor(cb,device='cuda')
 scale = torch.tensor(sc,device='cuda')
 
@@ -85,6 +85,12 @@ if based == 'GaussianMixture':
 elif based == 'GMM':
     q0 = nf.distributions.base.GMM(weights=weight, mbase=mbase, vbase=vbase, scale=scale,n_cell = nc,trainable = tparam)
     q1 = nf.distributions.base.GMM(weights=weight, mbase=mbase, vbase=vbase, scale=scale,n_cell = nc,trainable = tparam)
+elif based == 'T':
+    q0 = nf.distributions.base.T(n_dim=2, df = mb,trainable = tparam)
+    q1 = nf.distributions.base.T(n_dim=2, df = mb,trainable = tparam)
+elif based == 'GGD':
+    q0 = nf.distributions.base.GGD(n_dim=2, beta = mb,trainable = tparam)
+    q1 = nf.distributions.base.GGD(n_dim=2, beta = mb,trainable = tparam)
 
 elif based == 'MultivariateGaussian':
     q0 = nf.distributions.base.MultivariateGaussian(trainable=tparam)
@@ -155,12 +161,16 @@ for it in tqdm(range(max_iter)):
         if (it + 1) % show_iter == 0:
             gzarr.append(zarr)
             gzparr.append(zparr)
-            
+
             if based == 'GaussianMixture':
                 phist.append([nfm.q0.loc.detach().cpu().numpy(),nfm.q0.log_scale.detach().cpu().numpy(),nfm.q0.weight_scores.detach().cpu().numpy()])
 
             elif based == 'GMM':
                 phist.append([nfm.q0.mbase.detach().cpu().item(),nfm.q0.vbase.detach().cpu().item(),nfm.q0.scale.detach().cpu().item(),nfm.q0.weight.detach().cpu().numpy()])
+            elif based == 'GGD':
+                phist.append([nfm.q0.loc.detach().cpu().numpy(),nfm.q0.scale.detach().cpu().numpy(),nfm.q0.p.detach().cpu().numpy()])
+            elif based == 'T':
+                phist.append([nfm.q0.df.detach().cpu().numpy()])
 
             elif based == 'MultivariateGaussian':
                 phist.append([nfm.q0.loc.detach().cpu().numpy(),nfm.q0.scale.detach().cpu().numpy()])
