@@ -480,7 +480,7 @@ class GGD(BaseDistribution):
     def forward(self, num_samples=1):
         #print('~~~1',self.gmm.mixture_distribution.probs)
         
-        z = self.ggd.sample([num_samples,self.n_dim])
+        z = self.ggd.sample(num_samples)
         #print(z)
         log_prob= self.ggd.log_prob(z).mean(axis=1)
         return z, log_prob
