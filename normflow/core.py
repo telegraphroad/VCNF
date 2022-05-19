@@ -120,6 +120,7 @@ class NormalizingFlow(nn.Module):
         print('~~~~',log_q.shape)
         for flow in self.flows:
             z, log_det = flow(z)
+            print('~~~~',log_det.shape)            
             log_q -= log_det
         return z, log_q
 
