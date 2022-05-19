@@ -10,7 +10,7 @@ do
 				do
 					for cb in 1.1 
 					do
-						for b in "T" "GGD"
+						for b in "GGD" "T"
 						do
 							python run.py -cb "$mb" -mb "$mb"  -sc "$sc" -nc "$nc" -trainable "$tr" -nu "$nunit" -b "$b"
 						done

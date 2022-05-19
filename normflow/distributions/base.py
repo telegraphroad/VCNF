@@ -482,13 +482,13 @@ class GGD(BaseDistribution):
         
         z = self.ggd.sample([num_samples])
         #print(z)
-        log_prob= self.ggd.log_prob(z)
+        log_prob= self.ggd.log_prob(z).mean(axis=1)
         return z, log_prob
 
     def log_prob(self, z):
         #print('~~~0',self.loc.is_leaf,self.scale.is_leaf,self.w.is_leaf)
 
-        return self.ggd.log_prob(z)
+        return self.ggd.log_prob(z).mean(axis=1)
 
 
 class T(BaseDistribution):
