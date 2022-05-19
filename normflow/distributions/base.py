@@ -94,7 +94,9 @@ class GenNormal(ExponentialFamily):
         return self.loc + self.scale * sampled
 
     def sample(self, sample_shape=torch.Size()):
+        print('~~~~~~shape1',shape)
         shape = self._extended_shape(sample_shape)
+        print('~~~~~~shape2',shape)
         #print('shape',shape)
         with torch.no_grad():
             ipower = 1.0 / self.p
