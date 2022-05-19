@@ -95,7 +95,8 @@ class GenNormal(ExponentialFamily):
 
     def sample(self, sample_shape=torch.Size()):
         print('~~~~~~shape1',sample_shape)
-        shape = self._extended_shape(sample_shape)
+        #shape = self._extended_shape(sample_shape)
+        shape = sample_shape
         print('~~~~~~shape2',shape)
         #print('shape',shape)
         with torch.no_grad():
