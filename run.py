@@ -98,6 +98,7 @@ elif based == 'MultivariateGaussian':
 
 with torch.no_grad():
     sample3,_ = q1.forward(20000)
+    print(sample3.shape)
     sample3 = pd.DataFrame(sample3.detach().cpu().numpy())
 
 # Construct flow model

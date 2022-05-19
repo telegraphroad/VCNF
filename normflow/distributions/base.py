@@ -52,6 +52,12 @@ class GenNormal(ExponentialFamily):
 
     def __init__(self, loc, scale,p, validate_args=None):
         self.loc, self.scale, self.p = broadcast_all(loc, scale, p)
+        #print('11111',p)
+        
+        self.p = p
+        self.loc = loc
+        self.scale = scale
+        #print('2222',self.p)
         if isinstance(loc, Number) and isinstance(scale, Number):
             batch_shape = torch.Size()
         else:
@@ -60,18 +66,19 @@ class GenNormal(ExponentialFamily):
 
     def expand(self, batch_shape, _instance=None):
         new = self._get_checked_instance(GenNormal, _instance)
+
         batch_shape = torch.Size(batch_shape)
-        new.loc = self.loc.expand(batch_shape)
-        new.scale = self.scale.expand(batch_shape)
-        new.p = self.p.expand(batch_shape)
+        new.loc = self.loc.expand(self.loc.shape)
+        new.scale = self.scale.expand(self.scale.shape)
+        new.p = self.p.expand(self.p.shape)
         super(GenNormal, new).__init__(batch_shape, validate_args=False)
         new._validate_args = self._validate_args
         return new
     def rsample(self, sample_shape=torch.Size()):
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        print('~~~~~~shape1',shape)
+        #print('~~~~~~shape1',shape)
         shape = self._extended_shape(sample_shape)
-        print('~~~~~~shape2',shape)
+        #print('~~~~~~shape2',shape)
         ipower = 1.0 / self.p
         
         ipower = ipower.mean()#.cpu()
@@ -94,10 +101,7 @@ class GenNormal(ExponentialFamily):
         return self.loc + self.scale * sampled
 
     def sample(self, sample_shape=torch.Size()):
-        print('~~~~~~shape1',sample_shape)
         shape = self._extended_shape(sample_shape)
-        shape = sample_shape
-        print('~~~~~~shape2',shape)
         #print('shape',shape)
         with torch.no_grad():
             ipower = 1.0 / self.p
@@ -113,7 +117,6 @@ class GenNormal(ExponentialFamily):
 #             
 #             
             if type(ipower) == torch.Tensor:
-              print('~~~~~~~~',binary_sample.shape,gamma_sample.shape)
               sampled = binary_sample.to(gamma_sample.device).squeeze() * torch.pow(torch.abs(gamma_sample.squeeze()).to(gamma_sample.device), ipower.to(gamma_sample.device))
             else:
               sampled = binary_sample.squeeze() * torch.pow(torch.abs(gamma_sample.squeeze()), torch.FloatTensor(ipower))
@@ -471,13 +474,15 @@ class GGD(BaseDistribution):
         with torch.no_grad():
             if trainable:
                 self.p = nn.Parameter(torch.ones((self.n_dim,),dtype=torch.double,device='cuda') + self.beta, requires_grad = True)
-                self.loc = nn.Parameter(torch.zeros((self.n_dim,self.n_dim),dtype=torch.double,device='cuda'), requires_grad = True)
-                self.scale = nn.Parameter(torch.ones((self.n_dim,self.n_dim),dtype=torch.double,device='cuda'), requires_grad = True)
+                self.loc = nn.Parameter(torch.zeros((self.n_dim),dtype=torch.double,device='cuda'), requires_grad = True)
+                self.scale = nn.Parameter(torch.ones((self.n_dim),dtype=torch.double,device='cuda'), requires_grad = True)
             else:
                 self.register_buffer("p", torch.ones((self.n_dim,),dtype=torch.double,device='cuda'))
-                self.register_buffer("loc", torch.zeros((self.n_dim,self.n_dim),dtype=torch.double,device='cuda'))
-                self.register_buffer("scale", torch.ones((self.n_dim,self.n_dim),dtype=torch.double,device='cuda'))
+                self.register_buffer("loc", torch.zeros((self.n_dim),dtype=torch.double,device='cuda'))
+                self.register_buffer("scale", torch.ones((self.n_dim),dtype=torch.double,device='cuda'))
 
+        
+        #print('*************',self.n_dim,self.loc,self.scale,self.p)
         self.ggd = GenNormal(self.loc,self.scale,self.p)#univ
         #print('~~~1',self.gmm.mixture_distribution.probs)
 
