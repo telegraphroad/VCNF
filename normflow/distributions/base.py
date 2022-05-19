@@ -109,6 +109,7 @@ class GenNormal(ExponentialFamily):
 #             
 #             
             if type(ipower) == torch.Tensor:
+              print('~~~~~~~~',binary_sample.shape,gamma_sample.shape)
               sampled = binary_sample.to(gamma_sample.device).squeeze() * torch.pow(torch.abs(gamma_sample.squeeze()).to(gamma_sample.device), ipower.to(gamma_sample.device))
             else:
               sampled = binary_sample.squeeze() * torch.pow(torch.abs(gamma_sample.squeeze()), torch.FloatTensor(ipower))
