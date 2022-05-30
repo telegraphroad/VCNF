@@ -212,7 +212,7 @@ class GMM(nn.Module):
         return trsf.expand(self.n_cell, self.dim)
     
     def forward(self, num_samples=1):
-        print('8888888888')
+        #print('8888888888')
         means = self.trsf_gridm() 
         std = self.trsf_gridv()
         mix = D.Categorical(self.weight)
