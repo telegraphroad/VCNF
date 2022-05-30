@@ -4,15 +4,15 @@ do
 	do
 		for tr in 1 0
 		do
-			for nc in 500 4
+			for nc in 1
 			do
-				for mb in 1. 2. 3. 4.
+				for mb in 0. 1. 2. 3. 4.
 				do
-					for cb in 1.1 
+					for cb in 1. 2. 3. 4.
 					do
 						for b in "GGD" "T"
 						do
-							python run.py -cb "$mb" -mb "$mb"  -sc "$sc" -nc "$nc" -trainable "$tr" -nu "$nunit" -b "$b"
+							python run.py -cb "$cb" -mb "$mb"  -sc "$sc" -nc "$nc" -trainable "$tr" -nu "$nunit" -b "$b"
 						done
 					done
 				done
@@ -28,9 +28,9 @@ do
 	do
 		for tr in 1 0
 		do
-			for nc in 500 4
+			for nc in 500 100 20 4
 			do
-				for mb in 0. 1. 3. 5.
+				for mb in 0. 1. 2. 3. 4.
 				do
 					for cb in 1.1 
 					do

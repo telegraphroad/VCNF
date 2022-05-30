@@ -8,6 +8,7 @@ from tqdm import tqdm
 from copy import deepcopy
 import pandas as pd
 import traceback
+import pickle
 
 # Set up model
 
@@ -41,11 +42,11 @@ print(cb,mb,sc,nc,nu,tparam,based)
 #     for mb in [1.0001,2.,3.,10.,50.]:
 #         for sc in [1.,2.,3.,4.,5.]:
 #             for nc in [2,3,4,5,6,7,8,9,10,12,15,20,25,30,40,50,100,200,300,500,1000]:        
-max_iter = 20000
-num_samples = 2 ** 12
-anneal_iter = 15000
+max_iter = 10000
+num_samples = 2 ** 10
+anneal_iter = 8000
 annealing = True
-show_iter = 100
+show_iter = 25
 # nc = 3
 # mb = 1.00015
 # cb = 1.00015
@@ -58,8 +59,8 @@ latent_size = 2
 b = torch.Tensor([1 if i % 2 == 0 else 0 for i in range(latent_size)])
 flows = []
 for i in range(K):
-    s = nf.nets.MLP([latent_size, 2 * latent_size, latent_size], init_zeros=True)
-    t = nf.nets.MLP([latent_size, 2 * latent_size, latent_size], init_zeros=True)
+    s = nf.nets.MLP([latent_size, 8 * latent_size, latent_size], init_zeros=True)
+    t = nf.nets.MLP([latent_size, 8 * latent_size, latent_size], init_zeros=True)
     if i % 2 == 0:
         flows += [nf.flows.MaskedAffineFlow(b, t, s)]
     else:
@@ -86,11 +87,11 @@ elif based == 'GMM':
     q0 = nf.distributions.base.GMM(weights=weight, mbase=mbase, vbase=vbase, scale=scale,n_cell = nc,trainable = tparam)
     q1 = nf.distributions.base.GMM(weights=weight, mbase=mbase, vbase=vbase, scale=scale,n_cell = nc,trainable = tparam)
 elif based == 'T':
-    q0 = nf.distributions.base.T(n_dim=2, df = mb,trainable = tparam)
-    q1 = nf.distributions.base.T(n_dim=2, df = mb,trainable = tparam)
+    q0 = nf.distributions.base.T(n_dim=2, df = cb,trainable = tparam)
+    q1 = nf.distributions.base.T(n_dim=2, df = cb,trainable = tparam)
 elif based == 'GGD':
-    q0 = nf.distributions.base.GGD(n_dim=2, beta = mb,trainable = tparam)
-    q1 = nf.distributions.base.GGD(n_dim=2, beta = mb,trainable = tparam)
+    q0 = nf.distributions.base.GGD(n_dim=2, beta = cb,trainable = tparam)
+    q1 = nf.distributions.base.GGD(n_dim=2, beta = cb,trainable = tparam)
 
 elif based == 'MultivariateGaussian':
     q0 = nf.distributions.base.MultivariateGaussian(trainable=tparam)
@@ -139,6 +140,8 @@ sample0 = pd.DataFrame(sample0.cpu().detach().numpy())
 gzarr = []
 gzparr = []
 phist = []
+grads = []
+wb = []
 for it in tqdm(range(max_iter)):
     oldm = nfm.state_dict
     try:
@@ -149,10 +152,21 @@ for it in tqdm(range(max_iter)):
             loss = nfm.reverse_alpha_div(num_samples, dreg=True, alpha=1)
 
         if ~(torch.isnan(loss) | torch.isinf(loss)):
+            
             loss.backward(retain_graph=True)
+            #grads.append({n:p.grad for n, p in nfm.named_parameters()})
+
+            with torch.no_grad():
+                a = [p.grad for n, p in nfm.named_parameters()]
+                #print(a[3].mean(),a[4].mean())
+                grads.append(np.mean([i for i in np.hstack([i.detach().cpu().numpy().flatten() for i in a if i is not None]) if i != 0]))
+
             optimizer.step()
 
         loss_hist = np.append(loss_hist, loss.to('cpu').data.numpy())
+        
+        pm = {n:p.detach().cpu().numpy() for n, p in nfm.named_parameters()}
+
 
         #
         
@@ -160,6 +174,11 @@ for it in tqdm(range(max_iter)):
 
         # Plot learned posterior
         if (it + 1) % show_iter == 0:
+            wb.append(pm)
+            
+            
+
+
             gzarr.append(zarr)
             gzparr.append(zparr)
 
@@ -210,7 +229,11 @@ sample2.to_csv(f'/home/samiri/PhD/Synth/VCNF/logs/trainedmodel_nc_{nc}_cb_{cb}_m
 sample3.to_csv(f'/home/samiri/PhD/Synth/VCNF/logs/untrainedbase_{nc}_cb_{cb}_mb_{mb}_scale_{sc}_trainable_{tparam}_nunit_{nu}_base_{based}.pth')
 sample4.to_csv(f'/home/samiri/PhD/Synth/VCNF/logs/trainedbase_nc_{nc}_cb_{cb}_mb_{mb}_scale_{sc}_trainable_{tparam}_nunit_{nu}_base_{based}.pth')
 pd.DataFrame(loss_hist).to_csv(f'/home/samiri/PhD/Synth/VCNF/logs/losshist_nc_{nc}_cb_{cb}_mb_{mb}_scale_{sc}_trainable_{tparam}_nunit_{nu}_base_{based}.pth')
-pd.DataFrame(gzarr).to_csv(f'/home/samiri/PhD/Synth/VCNF/logs/z_nc_{nc}_cb_{cb}_mb_{mb}_scale_{sc}_trainable_{tparam}_nunit_{nu}_base_{based}.pth')
-pd.DataFrame(gzparr).to_csv(f'/home/samiri/PhD/Synth/VCNF/logs/zp_nc_{nc}_cb_{cb}_mb_{mb}_scale_{sc}_trainable_{tparam}_nunit_{nu}_base_{based}.pth')
+pickle.dump(gzarr, open( f'/home/samiri/PhD/Synth/VCNF/logs/z_nc_{nc}_cb_{cb}_mb_{mb}_scale_{sc}_trainable_{tparam}_nunit_{nu}_base_{based}.pth', 'wb'))
+pickle.dump(gzparr, open( f'/home/samiri/PhD/Synth/VCNF/logs/zp_nc_{nc}_cb_{cb}_mb_{mb}_scale_{sc}_trainable_{tparam}_nunit_{nu}_base_{based}.pth', 'wb'))
+#pd.DataFrame(gzarr).to_csv(f'/home/samiri/PhD/Synth/VCNF/logs/z_nc_{nc}_cb_{cb}_mb_{mb}_scale_{sc}_trainable_{tparam}_nunit_{nu}_base_{based}.pth')
+#pd.DataFrame(gzparr).to_csv(f'/home/samiri/PhD/Synth/VCNF/logs/zp_nc_{nc}_cb_{cb}_mb_{mb}_scale_{sc}_trainable_{tparam}_nunit_{nu}_base_{based}.pth')
 pd.DataFrame(phist).to_csv(f'/home/samiri/PhD/Synth/VCNF/logs/phist_nc_{nc}_cb_{cb}_mb_{mb}_scale_{sc}_trainable_{tparam}_nunit_{nu}_base_{based}.pth')
+torch.save(grads, f'/home/samiri/PhD/Synth/VCNF/logs/grads_nc_{nc}_cb_{cb}_mb_{mb}_scale_{sc}_trainable_{tparam}_nunit_{nu}_base_{based}.pth')
+torch.save(wb, f'/home/samiri/PhD/Synth/VCNF/logs/wb_nc_{nc}_cb_{cb}_mb_{mb}_scale_{sc}_trainable_{tparam}_nunit_{nu}_base_{based}.pth')
 

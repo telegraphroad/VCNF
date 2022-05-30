@@ -212,7 +212,7 @@ class GMM(nn.Module):
         return trsf.expand(self.n_cell, self.dim)
     
     def forward(self, num_samples=1):
-
+        print('8888888888')
         means = self.trsf_gridm() 
         std = self.trsf_gridv()
         mix = D.Categorical(self.weight)
@@ -220,7 +220,7 @@ class GMM(nn.Module):
         self.gmm = D.MixtureSameFamily(mix, comp)
         with torch.no_grad():
             samples = self.gmm.sample([num_samples]).double()
-        return samples, self.gmm.log_prob(samples)
+        return samples.T, self.gmm.log_prob(samples)
 
     def log_prob(self, z):
         #print('~~~0',self.loc.is_leaf,self.scale.is_leaf,self.w.is_leaf)
