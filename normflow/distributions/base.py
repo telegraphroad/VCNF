@@ -220,7 +220,7 @@ class GMM(nn.Module):
         self.gmm = D.MixtureSameFamily(mix, comp)
         with torch.no_grad():
             samples = self.gmm.sample([num_samples]).double()
-        return samples.T, self.gmm.log_prob(samples)
+        return samples, self.gmm.log_prob(samples)
 
     def log_prob(self, z):
         #print('~~~0',self.loc.is_leaf,self.scale.is_leaf,self.w.is_leaf)
