@@ -1,4 +1,4 @@
-for nunit in 12 16 32 36 40 48
+for nunit in 12 16 32
 do
 	for sc in 1. 0.
 	do
@@ -22,7 +22,7 @@ do
 done
 
 
-for nunit in 12 16 32 36 40 48
+for nunit in 12 16 32
 do
 	for sc in 1. 0.
 	do

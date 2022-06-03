@@ -102,8 +102,8 @@ elif based == 'GGD':
     q1 = nf.distributions.base.GGD(n_dim=29, beta = cb,trainable = tparam)
 
 elif based == 'MultivariateGaussian':
-    q0 = nf.distributions.base.MultivariateGaussian(trainable=tparam)
-    q1 = nf.distributions.base.MultivariateGaussian(trainable=tparam)
+    q0 = nf.distributions.base.MultivariateGaussian(n_dim=29,trainable=tparam)
+    q1 = nf.distributions.base.MultivariateGaussian(n_dim=29,trainable=tparam)
 
 with torch.no_grad():
     sample3,_ = q1.forward(20000)

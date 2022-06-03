@@ -117,7 +117,7 @@ class NormalizingFlow(nn.Module):
         :return: Samples, log probability
         """
         z, log_q = self.q0(num_samples)
-        print('88888',self.q0)
+        #print('88888',self.q0)
         print('99999',z.shape,log_q.shape)
         for flow in self.flows:
             z, log_det = flow(z)
@@ -132,7 +132,7 @@ class NormalizingFlow(nn.Module):
         """
         log_q = torch.zeros(len(x), dtype=x.dtype, device=x.device)
         z = x
-        print('888888',z.shape)
+        #print('888888',z.shape)
         for i in range(len(self.flows) - 1, -1, -1):
             z, log_det = self.flows[i].inverse(z)
             log_q += log_det
