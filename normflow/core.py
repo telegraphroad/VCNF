@@ -66,7 +66,7 @@ class NormalizingFlow(nn.Module):
             utils.set_requires_grad(self, True)
         log_p = self.p.log_prob(z)
         if extended:
-            return torch.mean(log_q) - beta * torch.mean(log_p), zarr, zparr
+            return torch.mean(log_q) - beta * torch.mean(log_p), zarr, zparr,log_p,log_q
         else:
             return torch.mean(log_q) - beta * torch.mean(log_p)
     def reverse_alpha_div(self, num_samples=1, alpha=1, dreg=False, extended = False):
