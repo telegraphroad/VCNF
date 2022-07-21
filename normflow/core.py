@@ -3,6 +3,7 @@ import torch.nn as nn
 from . import distributions
 from . import utils
 import math
+import numpy as np
 
 class NormalizingFlow(nn.Module):
     """
@@ -103,8 +104,8 @@ class NormalizingFlow(nn.Module):
             weights = (1 - alpha) * w_alpha + alpha * w_alpha ** 2
             loss = -alpha * torch.mean(weights * torch.log(w))
         else:
-            loss = -torch.logsumexp(alpha * (log_p - log_q), 0) + \
-                math.log(log_p.shape[0])
+            loss = np.sign(alpha - 1) * torch.logsumexp(alpha * (log_p - log_q), 0)
+            
         if extended:
             return loss, zarr, zparr
         else:
