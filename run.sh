@@ -1,4 +1,4 @@
-for nunit in 4 16
+for nunit in 16
 do
 	for sc in 1.
 	do
@@ -6,7 +6,7 @@ do
 		do
 			for nc in 1
 			do
-				for mb in 0. 1. 2. 3. 4.
+				for mb in 0. 2. 4.
 				do
 					for cb in 1. 2. 3. 4.
 					do
@@ -22,7 +22,7 @@ do
 done
 
 
-for nunit in 4 16
+for nunit in 16
 do
 	for sc in 1.
 	do
@@ -30,7 +30,7 @@ do
 		do
 			for nc in 500 100 20 4
 			do
-				for mb in 0. 1. 2. 3. 4.
+				for mb in 0. 2. 4.
 				do
 					for cb in 1.1 
 					do
