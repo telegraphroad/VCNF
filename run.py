@@ -42,11 +42,11 @@ print(cb,mb,sc,nc,nu,tparam,based)
 #     for mb in [1.0001,2.,3.,10.,50.]:
 #         for sc in [1.,2.,3.,4.,5.]:
 #             for nc in [2,3,4,5,6,7,8,9,10,12,15,20,25,30,40,50,100,200,300,500,1000]:        
-max_iter = 10000
+max_iter = 25000
 num_samples = 2 ** 10
 anneal_iter = 8000
 annealing = True
-show_iter = 25
+show_iter = 20
 # nc = 3
 # mb = 1.00015
 # cb = 1.00015
@@ -135,19 +135,26 @@ prob[torch.isnan(prob)] = 0
 loss_hist = np.array([])
 
 optimizer = torch.optim.Adam(nfm.parameters(), lr=1e-4, weight_decay=1e-6)
+if tparam:
+    optimizer2 = torch.optim.Adam(q0.parameters(), lr=1e-4, weight_decay=1e-6)
+
 sample0,_ = nfm.sample(20000)
 sample0 = pd.DataFrame(sample0.cpu().detach().numpy())
 gzarr = []
 gzparr = []
 phist = []
+phistg = []
 grads = []
 wb = []
+logp = []
+logq = []
+tgrads = []
 for it in tqdm(range(max_iter)):
     oldm = nfm.state_dict
     try:
         optimizer.zero_grad()
         if annealing:
-            loss,zarr,zparr = nfm.reverse_kld(num_samples, beta=np.min([1., 0.001 + it / anneal_iter]), extended = True)
+            loss,zarr,zparr,logpep,logqep = nfm.reverse_kld(num_samples, beta=np.min([1., 0.001 + it / anneal_iter]), extended = True)
         else:
             loss = nfm.reverse_alpha_div(num_samples, dreg=True, alpha=1)
 
@@ -158,12 +165,22 @@ for it in tqdm(range(max_iter)):
 
             with torch.no_grad():
                 a = [p.grad for n, p in nfm.named_parameters()]
+                #print('pgrad',q0.p.grad,'locgrad',q0.loc.grad,'scalegrad',q0.scale.grad)
+                #if str(q0) == 'GGD()':
+                
+                #    tgrads.append(q0.p.grad,q0.loc.grad,q0.scale.grad)
+                #print([[n,p] for n, p in nfm.named_parameters()])
                 #print(a[3].mean(),a[4].mean())
                 grads.append(np.mean([i for i in np.hstack([i.detach().cpu().numpy().flatten() for i in a if i is not None]) if i != 0]))
 
             optimizer.step()
+            if tparam:
+                optimizer2.step()
 
         loss_hist = np.append(loss_hist, loss.to('cpu').data.numpy())
+        #print(logpep.median().detach().cpu().numpy())
+        logp.append(logpep.mean().detach().cpu().numpy())
+        logq.append(logqep.mean().detach().cpu().numpy())
         
         pm = {n:p.detach().cpu().numpy() for n, p in nfm.named_parameters()}
 
@@ -181,26 +198,40 @@ for it in tqdm(range(max_iter)):
 
             gzarr.append(zarr)
             gzparr.append(zparr)
+            phist.append([a.detach().cpu().numpy() for a in q0.parameters()])
+            phistg.append([a.grad.detach().cpu().numpy() for a in q0.parameters() if a.grad is not None])
+            # if based == 'GaussianMixture':
+            #     phistg.append([nfm.q0.loc.grad,nfm.q0.log_scale.grad,nfm.q0.weight_scores.grad])
 
-            if based == 'GaussianMixture':
-                phist.append([nfm.q0.loc.detach().cpu().numpy(),nfm.q0.log_scale.detach().cpu().numpy(),nfm.q0.weight_scores.detach().cpu().numpy()])
+            # elif based == 'GMM':
+            #     phistg.append([nfm.q0.mbase.grad,nfm.q0.vbase.grad,nfm.q0.scale.grad,nfm.q0.weight.grad])
+            # elif based == 'GGD':
+            #     phistg.append([nfm.q0.loc.grad,nfm.q0.scale.grad,nfm.q0.p.grad])
+            # elif based == 'T':
+            #     phistg.append([nfm.q0.df.grad])
 
-            elif based == 'GMM':
-                phist.append([nfm.q0.mbase.detach().cpu().item(),nfm.q0.vbase.detach().cpu().item(),nfm.q0.scale.detach().cpu().item(),nfm.q0.weight.detach().cpu().numpy()])
-            elif based == 'GGD':
-                phist.append([nfm.q0.loc.detach().cpu().numpy(),nfm.q0.scale.detach().cpu().numpy(),nfm.q0.p.detach().cpu().numpy()])
-            elif based == 'T':
-                phist.append([nfm.q0.df.detach().cpu().numpy()])
+            # elif based == 'MultivariateGaussian':
+            #     phistg.append([nfm.q0.loc.grad,nfm.q0.scale.grad])
 
-            elif based == 'MultivariateGaussian':
-                phist.append([nfm.q0.loc.detach().cpu().numpy(),nfm.q0.scale.detach().cpu().numpy()])
+            # if based == 'GaussianMixture':
+            #     phist.append([nfm.q0.loc,nfm.q0.log_scale,nfm.q0.weight_scores])
 
+            # elif based == 'GMM':
+            #     phist.append([nfm.q0.mbase,nfm.q0.vbase,nfm.q0.scale,nfm.q0.weight])
+            # elif based == 'GGD':
+            #     phist.append([nfm.q0.loc,nfm.q0.scale,nfm.q0.p])
+            # elif based == 'T':
+            #     phist.append([nfm.q0.df])
+
+            # elif based == 'MultivariateGaussian':
+            #     phist.append([nfm.q0.loc.grad,nfm.q0.scale.grad])
         #     log_prob = nfm.log_prob(zz).to('cpu').view(*xx.shape)
         #     prob = torch.exp(log_prob)
         #     prob[torch.isnan(prob)] = 0
 
         #     plt.figure(figsize=(15, 15))
         #     plt.pcolormesh(xx, yy, prob.data.numpy())
+        #     plt.contour(xx, yy, prob_prior.data.numpy(), cmap=plt.get_cmap('cool'), linewidths=2)
         #     plt.contour(xx, yy, prob_prior.data.numpy(), cmap=plt.get_cmap('cool'), linewidths=2)
         #     plt.gca().set_aspect('equal', 'box')
         #     plt.show()
@@ -229,11 +260,14 @@ sample2.to_csv(f'/home/samiri/PhD/Synth/VCNF/logs/trainedmodel_nc_{nc}_cb_{cb}_m
 sample3.to_csv(f'/home/samiri/PhD/Synth/VCNF/logs/untrainedbase_{nc}_cb_{cb}_mb_{mb}_scale_{sc}_trainable_{tparam}_nunit_{nu}_base_{based}.pth')
 sample4.to_csv(f'/home/samiri/PhD/Synth/VCNF/logs/trainedbase_nc_{nc}_cb_{cb}_mb_{mb}_scale_{sc}_trainable_{tparam}_nunit_{nu}_base_{based}.pth')
 pd.DataFrame(loss_hist).to_csv(f'/home/samiri/PhD/Synth/VCNF/logs/losshist_nc_{nc}_cb_{cb}_mb_{mb}_scale_{sc}_trainable_{tparam}_nunit_{nu}_base_{based}.pth')
-pickle.dump(gzarr, open( f'/home/samiri/PhD/Synth/VCNF/logs/z_nc_{nc}_cb_{cb}_mb_{mb}_scale_{sc}_trainable_{tparam}_nunit_{nu}_base_{based}.pth', 'wb'))
-pickle.dump(gzparr, open( f'/home/samiri/PhD/Synth/VCNF/logs/zp_nc_{nc}_cb_{cb}_mb_{mb}_scale_{sc}_trainable_{tparam}_nunit_{nu}_base_{based}.pth', 'wb'))
+#pickle.dump(gzarr, open( f'/home/samiri/PhD/Synth/VCNF/logs/z_nc_{nc}_cb_{cb}_mb_{mb}_scale_{sc}_trainable_{tparam}_nunit_{nu}_base_{based}.pth', 'wb'))
+#pickle.dump(gzparr, open( f'/home/samiri/PhD/Synth/VCNF/logs/zp_nc_{nc}_cb_{cb}_mb_{mb}_scale_{sc}_trainable_{tparam}_nunit_{nu}_base_{based}.pth', 'wb'))
 #pd.DataFrame(gzarr).to_csv(f'/home/samiri/PhD/Synth/VCNF/logs/z_nc_{nc}_cb_{cb}_mb_{mb}_scale_{sc}_trainable_{tparam}_nunit_{nu}_base_{based}.pth')
+pd.DataFrame(logp).to_csv(f'/home/samiri/PhD/Synth/VCNF/logs/logp_nc_{nc}_cb_{cb}_mb_{mb}_scale_{sc}_trainable_{tparam}_nunit_{nu}_base_{based}.pth')
+pd.DataFrame(logq).to_csv(f'/home/samiri/PhD/Synth/VCNF/logs/logq_nc_{nc}_cb_{cb}_mb_{mb}_scale_{sc}_trainable_{tparam}_nunit_{nu}_base_{based}.pth')
 #pd.DataFrame(gzparr).to_csv(f'/home/samiri/PhD/Synth/VCNF/logs/zp_nc_{nc}_cb_{cb}_mb_{mb}_scale_{sc}_trainable_{tparam}_nunit_{nu}_base_{based}.pth')
-pd.DataFrame(phist).to_csv(f'/home/samiri/PhD/Synth/VCNF/logs/phist_nc_{nc}_cb_{cb}_mb_{mb}_scale_{sc}_trainable_{tparam}_nunit_{nu}_base_{based}.pth')
+torch.save(phist,f'/home/samiri/PhD/Synth/VCNF/logs/phist_nc_{nc}_cb_{cb}_mb_{mb}_scale_{sc}_trainable_{tparam}_nunit_{nu}_base_{based}.pth')
+torch.save(phistg,f'/home/samiri/PhD/Synth/VCNF/logs/phistg_nc_{nc}_cb_{cb}_mb_{mb}_scale_{sc}_trainable_{tparam}_nunit_{nu}_base_{based}.pth')
 torch.save(grads, f'/home/samiri/PhD/Synth/VCNF/logs/grads_nc_{nc}_cb_{cb}_mb_{mb}_scale_{sc}_trainable_{tparam}_nunit_{nu}_base_{based}.pth')
 torch.save(wb, f'/home/samiri/PhD/Synth/VCNF/logs/wb_nc_{nc}_cb_{cb}_mb_{mb}_scale_{sc}_trainable_{tparam}_nunit_{nu}_base_{based}.pth')
-
+#torch.save(tgrads, f'/home/samiri/PhD/Synth/VCNF/logs/tgrads_nc_{nc}_cb_{cb}_mb_{mb}_scale_{sc}_trainable_{tparam}_nunit_{nu}_base_{based}.pth')

@@ -11,10 +11,19 @@ from torch.distributions import MultivariateNormal
 from torch.distributions.normal import Normal
 from torch.distributions.distribution import Distribution
 from torch.distributions import constraints
+import torch
+from pyro.distributions import Chi2, TorchDistribution
+from torch._six import inf, nan
+from torch.distributions import constraints
+from torch.distributions.utils import _standard_normal, broadcast_all, lazy_property
 from typing import Dict
 from scipy.stats import gennorm
+import torch
+from torch.distributions import Gamma, MultivariateNormal, StudentT
 
+from pyro.distributions import MultivariateStudentT
 from .. import flows
+
 
 class GenNormal(ExponentialFamily):
     r"""
@@ -297,8 +306,8 @@ class MultivariateGaussian(BaseDistribution):
                 self.scale = nn.Parameter(torch.eye(self.n_dim,dtype=torch.double,device='cuda') + scale, requires_grad = True)
             else:
                 
-                self.register_buffer("loc", torch.zeros(self.n_dim,dtype=torch.double,device='cuda'))
-                self.register_buffer("scale", torch.eye(self.n_dim,dtype=torch.double,device='cuda'))
+                self.register_buffer("loc", torch.zeros(self.n_dim,dtype=torch.double,device='cuda')+loc)
+                self.register_buffer("scale", torch.eye(self.n_dim,dtype=torch.double,device='cuda')+scale)
 
         self.mvn = D.MultivariateNormal(self.loc, self.scale)
         
@@ -477,7 +486,7 @@ class GGD(BaseDistribution):
                 self.loc = nn.Parameter(torch.zeros((self.n_dim),dtype=torch.double,device='cuda'), requires_grad = True)
                 self.scale = nn.Parameter(torch.ones((self.n_dim),dtype=torch.double,device='cuda'), requires_grad = True)
             else:
-                self.register_buffer("p", torch.ones((self.n_dim,),dtype=torch.double,device='cuda'))
+                self.register_buffer("p", torch.ones((self.n_dim,),dtype=torch.double,device='cuda')+self.beta)
                 self.register_buffer("loc", torch.zeros((self.n_dim),dtype=torch.double,device='cuda'))
                 self.register_buffer("scale", torch.ones((self.n_dim),dtype=torch.double,device='cuda'))
 
@@ -501,9 +510,9 @@ class GGD(BaseDistribution):
         return self.ggd.log_prob(z).mean(axis=1)
 
 
-class T(BaseDistribution):
+class TSV(BaseDistribution):
     """
-    Multivariate Gaussian distribution with diagonal covariance matrix
+    Normal T
     """
     def __init__(self, n_dim=2, df = 2., trainable=False):
         """
@@ -514,16 +523,66 @@ class T(BaseDistribution):
 
         
         self.n_dim = n_dim
-        self.df = df
+        
 
 
         with torch.no_grad():
             if trainable:
-                self.df = nn.Parameter(torch.zeros((self.n_dim,),dtype=torch.double,device='cuda') + self.df, requires_grad = True)
+                self.df = nn.Parameter(torch.zeros((self.n_dim,),dtype=torch.double,device='cuda') + df, requires_grad = True)
             else:
-                self.register_buffer("df", torch.ones((self.n_dim,) + self.df,dtype=torch.double,device='cuda'))
+                self.register_buffer("df", torch.ones((self.n_dim,),dtype=torch.double,device='cuda') + df)
 
         self.t = D.StudentT(self.df)#univ
+        #print('~~~1',self.gmm.mixture_distribution.probs)
+
+
+    def forward(self, num_samples=1):
+        #print('~~~1',self.gmm.mixture_distribution.probs)
+        
+        z = self.t.sample([num_samples])
+        #print(z)
+        log_prob= self.t.log_prob(z).mean(axis=1)
+        return z, log_prob
+
+    def log_prob(self, z):
+        #print('~~~0',self.loc.is_leaf,self.scale.is_leaf,self.w.is_leaf)
+
+        return self.t.log_prob(z).mean(axis=1)
+
+class T(BaseDistribution):
+    """
+    Multivariate T
+    """
+    def __init__(self, n_dim=2, df = 2., trainable=False):
+        """
+        Constructor
+        :param shape: Tuple with shape of data, if int shape has one dimension
+        """
+        super().__init__()
+
+        
+        self.n_dim = n_dim
+        rank = n_dim + n_dim
+        tdf = torch.tensor([df],device='cuda')
+        tloc = torch.zeros((1.,) + (n_dim,),device='cuda')
+        tcov = torch.randn((1.,) + (n_dim, rank),device='cuda')
+        tcov = tcov.matmul(tcov.transpose(-1, -2))
+        tscale_tril = tcov.cholesky()        
+
+
+        with torch.no_grad():
+            if trainable:
+                self.df = nn.Parameter(df, requires_grad = True)
+                self.loc = nn.Parameter(tloc, requires_grad = True)
+                self.scale = nn.Parameter(tscale_tril, requires_grad = True)
+
+                
+            else:
+                self.register_buffer("df", tdf)
+                self.register_buffer("loc", tloc)
+                self.register_buffer("scale", tscale_tril)
+
+        self.t = MultivariateStudentT(self.df, self.loc, self.scale)#univ
         #print('~~~1',self.gmm.mixture_distribution.probs)
 
 

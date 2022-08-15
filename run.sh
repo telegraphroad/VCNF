@@ -2,13 +2,13 @@ for nunit in 16
 do
 	for sc in 1.
 	do
-		for tr in 1 0
+		for tr in 0 1
 		do
 			for nc in 1
 			do
-				for mb in 0. 2. 4.
+				for mb in 0. 1. 2. 3. 4. 5. 6.
 				do
-					for cb in 1. 2. 3. 4.
+					for cb in 1. 2. 3. 4. 5.
 					do
 						for b in "GGD" "T"
 						do
@@ -26,11 +26,11 @@ for nunit in 16
 do
 	for sc in 1.
 	do
-		for tr in 1 0
+		for tr in 0 1
 		do
-			for nc in 500 100 20 4
+			for nc in 100
 			do
-				for mb in 0. 2. 4.
+				for mb in 0. 1. 2. 3. 4. 5. 6.
 				do
 					for cb in 1.1 
 					do

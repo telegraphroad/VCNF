@@ -2,7 +2,7 @@ import numpy as np
 import torch
 from torch import nn
 from torch.distributions import MultivariateNormal, Normal
-from scipy.stats import multivariate_t
+from scipy.stats import multivariate_t, lognorm, cauchy, invweibull, pareto, chi2
 
 
 class Target(nn.Module):
@@ -124,6 +124,124 @@ class StudentTDist(Target):
         :return: log probability of the distribution for z
         """
         return torch.tensor(multivariate_t(loc=self.loc,df=self.df).logpdf(z.cpu().detach().numpy()),device='cuda')
+
+class chi2Dist(Target):
+    """
+    Bimodal two-dimensional distribution
+    """
+    def __init__(self,df=2.,dim=2):
+        super().__init__()
+        self.df = df
+        self.loc = np.repeat([0.],dim)
+
+    def sample(self, num_samples=1):
+        """
+        :param num_samples: Number of samples to draw
+        :return: Samples
+        """
+        return torch.tensor(chi2(loc=self.loc,df=self.df).rvs(num_samples),device='cuda')
+
+    def log_prob(self, z):
+        """
+        :param z: value or batch of latent variable
+        :return: log probability of the distribution for z
+        """
+        return torch.tensor(chi2(loc=self.loc,df=self.df).logpdf(z.cpu().detach().numpy()),device='cuda')
+
+
+class FrechetDist(Target):
+    """
+    Bimodal two-dimensional distribution
+    """
+    def __init__(self,c=2.,dim=2):
+        super().__init__()
+        self.c = c
+        self.loc = np.repeat([0.],dim)
+
+    def sample(self, num_samples=1):
+        """
+        :param num_samples: Number of samples to draw
+        :return: Samples
+        """
+        return torch.tensor(invweibull(loc=self.loc,c=self.c).rvs(num_samples),device='cuda')
+
+    def log_prob(self, z):
+        """
+        :param z: value or batch of latent variable
+        :return: log probability of the distribution for z
+        """
+        return torch.tensor(invweibull(loc=self.loc,c=self.c).logpdf(z.cpu().detach().numpy()),device='cuda')
+
+
+class ParetoDist(Target):
+    """
+    Bimodal two-dimensional distribution
+    """
+    def __init__(self,b=2.,dim=2):
+        super().__init__()
+        self.b = b
+        self.loc = np.repeat([0.],dim)
+
+    def sample(self, num_samples=1):
+        """
+        :param num_samples: Number of samples to draw
+        :return: Samples
+        """
+        return torch.tensor(pareto(loc=self.loc,b=self.b).rvs(num_samples),device='cuda')
+
+    def log_prob(self, z):
+        """
+        :param z: value or batch of latent variable
+        :return: log probability of the distribution for z
+        """
+        return torch.tensor(pareto(loc=self.loc,b=self.b).logpdf(z.cpu().detach().numpy()),device='cuda')
+
+
+class CauchyDist(Target):
+    """
+    Bimodal two-dimensional distribution
+    """
+    def __init__(self,dim=2):
+        super().__init__()
+        self.loc = np.repeat([0.],dim)
+
+    def sample(self, num_samples=1):
+        """
+        :param num_samples: Number of samples to draw
+        :return: Samples
+        """
+        return torch.tensor(cauchy(loc=self.loc).rvs(num_samples),device='cuda')
+
+    def log_prob(self, z):
+        """
+        :param z: value or batch of latent variable
+        :return: log probability of the distribution for z
+        """
+        return torch.tensor(cauchy(loc=self.loc).logpdf(z.cpu().detach().numpy()),device='cuda')
+
+
+class LogNormDist(Target):
+    """
+    Bimodal two-dimensional distribution
+    """
+    def __init__(self,s=2.,dim=2):
+        super().__init__()
+        self.s = s
+        self.loc = np.repeat([0.],dim)
+
+    def sample(self, num_samples=1):
+        """
+        :param num_samples: Number of samples to draw
+        :return: Samples
+        """
+        return torch.tensor(lognorm(loc=self.loc,s=self.s).rvs(num_samples),device='cuda')
+
+    def log_prob(self, z):
+        """
+        :param z: value or batch of latent variable
+        :return: log probability of the distribution for z
+        """
+        return torch.tensor(lognorm(loc=self.loc,s=self.s).logpdf(z.cpu().detach().numpy()),device='cuda')
 
   
 class TwoMoons(Target):
