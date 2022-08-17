@@ -563,18 +563,20 @@ class T(BaseDistribution):
         
         self.n_dim = n_dim
         rank = n_dim + n_dim
-        tdf = torch.tensor([df],device='cuda')
-        tloc = torch.zeros((1.,) + (n_dim,),device='cuda')
-        tcov = torch.randn((1.,) + (n_dim, rank),device='cuda')
+        tdf = torch.rand((1,), device='cuda').exp()
+        tdf = tdf - tdf + df
+        
+        tloc = torch.randn((1,) + (n_dim,), device='cuda')
+        tcov = torch.randn((1,) + (n_dim, rank),device='cuda')
         tcov = tcov.matmul(tcov.transpose(-1, -2))
         tscale_tril = tcov.cholesky()        
 
 
         with torch.no_grad():
             if trainable:
-                self.df = nn.Parameter(df, requires_grad = True)
-                self.loc = nn.Parameter(tloc, requires_grad = True)
-                self.scale = nn.Parameter(tscale_tril, requires_grad = True)
+                self.df = nn.Parameter(tdf.double(), requires_grad = True)
+                self.loc = nn.Parameter(tloc.double(), requires_grad = True)
+                self.scale = nn.Parameter(tscale_tril.double(), requires_grad = True)
 
                 
             else:
@@ -588,16 +590,19 @@ class T(BaseDistribution):
 
     def forward(self, num_samples=1):
         #print('~~~1',self.gmm.mixture_distribution.probs)
+        #print(self.t.loc.dtype,self.t.df.dtype,self.t.scale_tril.dtype)
         
         z = self.t.sample([num_samples])
-        #print(z)
+        
+        
         log_prob= self.t.log_prob(z).mean(axis=1)
-        return z, log_prob
+        #print(z.shape,log_prob.shape)
+        return z.squeeze(), log_prob
 
     def log_prob(self, z):
         #print('~~~0',self.loc.is_leaf,self.scale.is_leaf,self.w.is_leaf)
 
-        return self.t.log_prob(z).mean(axis=1)
+        return self.t.log_prob(z[:,None,:]).mean(axis=1)
 
         
         

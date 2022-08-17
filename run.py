@@ -44,7 +44,7 @@ print(cb,mb,sc,nc,nu,tparam,based)
 #             for nc in [2,3,4,5,6,7,8,9,10,12,15,20,25,30,40,50,100,200,300,500,1000]:        
 max_iter = 25000
 num_samples = 2 ** 10
-anneal_iter = 8000
+anneal_iter = 12000
 annealing = True
 show_iter = 20
 # nc = 3
@@ -104,12 +104,14 @@ with torch.no_grad():
 
 # Construct flow model
 nfm = nf.NormalizingFlow(q0=q0, flows=flows, p=prior)
+nfmBest = nf.NormalizingFlow(q0=q0, flows=flows, p=prior)
 
 # Move model on GPU if available
 enable_cuda = True
 device = torch.device('cuda' if torch.cuda.is_available() and enable_cuda else 'cpu')
 nfm = nfm.to(device)
-nfm = nfm.double()
+nfmBest = nfmBest.to(device)
+nfmBest = nfmBest.double()
 
 # Initialize ActNorm
 z, _ = nfm.sample(num_samples=2 ** 16)
@@ -145,12 +147,16 @@ gzparr = []
 phist = []
 phistg = []
 grads = []
+gradssteps = []
 wb = []
 logp = []
 logq = []
 tgrads = []
+closs = 1e20
+nfmBest.state_dict = nfm.state_dict
 for it in tqdm(range(max_iter)):
     oldm = nfm.state_dict
+    oldp = q0.parameters
     try:
         optimizer.zero_grad()
         if annealing:
@@ -165,13 +171,19 @@ for it in tqdm(range(max_iter)):
 
             with torch.no_grad():
                 a = [p.grad for n, p in nfm.named_parameters()]
+                asteps = []
+                for lctr in range(0,nu):
+                    asteps.append([p.grad for n, p in nfm.named_parameters() if (('flows.'+str(lctr)+'.' in n) or ('flows.'+str(lctr+1)+'.' in n))])
+                agrads = []
                 #print('pgrad',q0.p.grad,'locgrad',q0.loc.grad,'scalegrad',q0.scale.grad)
                 #if str(q0) == 'GGD()':
-                
+                for lg in asteps:
+                    agrads.append(np.mean([i for i in np.hstack([i.detach().cpu().numpy().flatten() for i in lg if i is not None]) if i != 0]))
                 #    tgrads.append(q0.p.grad,q0.loc.grad,q0.scale.grad)
                 #print([[n,p] for n, p in nfm.named_parameters()])
                 #print(a[3].mean(),a[4].mean())
                 grads.append(np.mean([i for i in np.hstack([i.detach().cpu().numpy().flatten() for i in a if i is not None]) if i != 0]))
+                gradssteps.append(agrads)
 
             optimizer.step()
             if tparam:
@@ -179,8 +191,8 @@ for it in tqdm(range(max_iter)):
 
         loss_hist = np.append(loss_hist, loss.to('cpu').data.numpy())
         #print(logpep.median().detach().cpu().numpy())
-        logp.append(logpep.mean().detach().cpu().numpy())
-        logq.append(logqep.mean().detach().cpu().numpy())
+        logp.append(logpep.detach().cpu().numpy())
+        logq.append(logqep.detach().cpu().numpy())
         
         pm = {n:p.detach().cpu().numpy() for n, p in nfm.named_parameters()}
 
@@ -188,6 +200,7 @@ for it in tqdm(range(max_iter)):
         #
         
         #print(nfm.q0.mbase.detach().cpu().item())
+        phistg.append([a.grad.detach().cpu().numpy() for a in q0.parameters() if a.grad is not None])
 
         # Plot learned posterior
         if (it + 1) % show_iter == 0:
@@ -199,7 +212,6 @@ for it in tqdm(range(max_iter)):
             gzarr.append(zarr)
             gzparr.append(zparr)
             phist.append([a.detach().cpu().numpy() for a in q0.parameters()])
-            phistg.append([a.grad.detach().cpu().numpy() for a in q0.parameters() if a.grad is not None])
             # if based == 'GaussianMixture':
             #     phistg.append([nfm.q0.loc.grad,nfm.q0.log_scale.grad,nfm.q0.weight_scores.grad])
 
@@ -235,10 +247,16 @@ for it in tqdm(range(max_iter)):
         #     plt.contour(xx, yy, prob_prior.data.numpy(), cmap=plt.get_cmap('cool'), linewidths=2)
         #     plt.gca().set_aspect('equal', 'box')
         #     plt.show()
+        if loss.to('cpu').data.item()<closs:
+            closs = loss.to('cpu').data.item()
+            nfmBest.state_dict = nfm.state_dict
+            q1.parameters = q0.parameters
+            #print('BU')
     except Exception as e:
         print(e)
         traceback.print_exc()                        
         nfm.state_dict = oldm
+        q0.parameters = oldp
 
 
 # Plot learned posterior distribution
@@ -247,13 +265,19 @@ for it in tqdm(range(max_iter)):
 # prob[torch.isnan(prob)] = 0
 
 
+# sample1 = pd.DataFrame(prior.sample(20000).cpu().detach().numpy())
+# sample2,_ = nfm.sample(20000)
+# sample2 = pd.DataFrame(sample2.cpu().detach().numpy())
+# sample4,_ = nfm.q0.forward(20000)
+# sample4 = pd.DataFrame(sample4.detach().cpu().numpy())
+
 sample1 = pd.DataFrame(prior.sample(20000).cpu().detach().numpy())
-sample2,_ = nfm.sample(20000)
+sample2,_ = nfmBest.sample(20000)
 sample2 = pd.DataFrame(sample2.cpu().detach().numpy())
-sample4,_ = nfm.q0.forward(20000)
+sample4,_ = nfmBest.q0.forward(20000)
 sample4 = pd.DataFrame(sample4.detach().cpu().numpy())
 
-torch.save(nfm, f'/home/samiri/PhD/Synth/VCNF/logs/model_nc_{nc}_cb_{cb}_mb_{mb}_scale_{sc}_trainable_{tparam}_nunit_{nu}_base_{based}.pth')
+torch.save(nfmBest, f'/home/samiri/PhD/Synth/VCNF/logs/model_nc_{nc}_cb_{cb}_mb_{mb}_scale_{sc}_trainable_{tparam}_nunit_{nu}_base_{based}.pth')
 sample0.to_csv(f'/home/samiri/PhD/Synth/VCNF/logs/untrainedmodel_nc_{nc}_cb_{cb}_mb_{mb}_scale_{sc}_trainable_{tparam}_nunit_{nu}_base_{based}.pth')
 sample1.to_csv(f'/home/samiri/PhD/Synth/VCNF/logs/target_nc_{nc}_cb_{cb}_mb_{mb}_scale_{sc}_trainable_{tparam}_nunit_{nu}_base_{based}.pth')
 sample2.to_csv(f'/home/samiri/PhD/Synth/VCNF/logs/trainedmodel_nc_{nc}_cb_{cb}_mb_{mb}_scale_{sc}_trainable_{tparam}_nunit_{nu}_base_{based}.pth')
@@ -269,5 +293,6 @@ pd.DataFrame(logq).to_csv(f'/home/samiri/PhD/Synth/VCNF/logs/logq_nc_{nc}_cb_{cb
 torch.save(phist,f'/home/samiri/PhD/Synth/VCNF/logs/phist_nc_{nc}_cb_{cb}_mb_{mb}_scale_{sc}_trainable_{tparam}_nunit_{nu}_base_{based}.pth')
 torch.save(phistg,f'/home/samiri/PhD/Synth/VCNF/logs/phistg_nc_{nc}_cb_{cb}_mb_{mb}_scale_{sc}_trainable_{tparam}_nunit_{nu}_base_{based}.pth')
 torch.save(grads, f'/home/samiri/PhD/Synth/VCNF/logs/grads_nc_{nc}_cb_{cb}_mb_{mb}_scale_{sc}_trainable_{tparam}_nunit_{nu}_base_{based}.pth')
+torch.save(gradssteps, f'/home/samiri/PhD/Synth/VCNF/logs/gradssteps_nc_{nc}_cb_{cb}_mb_{mb}_scale_{sc}_trainable_{tparam}_nunit_{nu}_base_{based}.pth')
 torch.save(wb, f'/home/samiri/PhD/Synth/VCNF/logs/wb_nc_{nc}_cb_{cb}_mb_{mb}_scale_{sc}_trainable_{tparam}_nunit_{nu}_base_{based}.pth')
 #torch.save(tgrads, f'/home/samiri/PhD/Synth/VCNF/logs/tgrads_nc_{nc}_cb_{cb}_mb_{mb}_scale_{sc}_trainable_{tparam}_nunit_{nu}_base_{based}.pth')

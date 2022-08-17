@@ -12,7 +12,9 @@ do
                     do
                         for b in "GGD" "T"
                         do
-                            python runcred.py -cb "$cb" -mb "$mb"  -sc "$sc" -nc "$nc" -trainable "$tr" -nu "$nunit" -b "$b"
+                            for d in "quadspline" "sawtooth" "annulus" "split-gaussian" "1uniform" "2marginals" "2lines" "2uniforms" "cos" "line" "checkerboard" "2spirals" "pinwheel" "8gaussians"
+                                python runcred.py -cb "$cb" -mb "$mb"  -sc "$sc" -nc "$nc" -trainable "$tr" -nu "$nunit" -b "$b" -ds "$d"
+                            done
                         done
                     done
                 done
@@ -36,7 +38,9 @@ do
                     do
                         for b in "GaussianMixture" "MultivariateGaussian"
                         do
-                            python runcred.py -cb "$mb" -mb "$mb"  -sc "$sc" -nc "$nc" -trainable "$tr" -nu "$nunit" -b "$b"
+                            for d in "quadspline" "sawtooth" "annulus" "split-gaussian" "1uniform" "2marginals" "2lines" "2uniforms" "cos" "line" "checkerboard" "2spirals" "pinwheel" "8gaussians"
+                                python runcred.py -cb "$mb" -mb "$mb"  -sc "$sc" -nc "$nc" -trainable "$tr" -nu "$nunit" -b "$b" -ds "$d"
+                            done
                         done
                     done
                 done

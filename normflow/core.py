@@ -21,7 +21,7 @@ class NormalizingFlow(nn.Module):
         self.flows = nn.ModuleList(flows)
         self.p = p
 
-    def forward_kld(self, x):
+    def forward_kld(self, x, extended = False):
         """
         Estimates forward KL divergence, see arXiv 1912.02762
         :param x: Batch sampled from target distribution
@@ -29,11 +29,21 @@ class NormalizingFlow(nn.Module):
         """
         log_q = torch.zeros(len(x), device=x.device)
         z = x
+        zarr = []
+        zparr = []
+
         for i in range(len(self.flows) - 1, -1, -1):
             z, log_det = self.flows[i].inverse(z)
+            if extended:
+                zarr.append(z.cpu().detach().numpy())
+                zparr.append(log_det.cpu().detach().numpy())
+
             log_q += log_det
         log_q += self.q0.log_prob(z)
-        return -torch.mean(log_q)
+        if extended:
+            return  -torch.mean(log_q), zarr, zparr,log_q
+        else:
+            return -torch.mean(log_q)
 
     def reverse_kld(self, num_samples=1, beta=1., score_fn=True, extended = False):
         """
