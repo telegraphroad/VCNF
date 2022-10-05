@@ -25,6 +25,8 @@ from collections import Counter
 # Define flows
 
 import argparse
+
+from normflow import utils
  
 parser = argparse.ArgumentParser(description="Just an example",
                                  formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -54,9 +56,9 @@ print(cb,mb,sc,nc,nu,tparam,based)
 #     for mb in [1.0001,2.,3.,10.,50.]:
 #         for sc in [1.,2.,3.,4.,5.]:
 #             for nc in [2,3,4,5,6,7,8,9,10,12,15,20,25,30,40,50,100,200,300,500,1000]:        
-max_iter = 10000
+max_iter = 20000
 num_samples = 2 ** 11
-anneal_iter = 7000
+anneal_iter = 15000
 annealing = True
 show_iter = 25
 # nc = 3
@@ -67,16 +69,35 @@ show_iter = 25
 K = nu
 torch.manual_seed(0)
 
-latent_size = 29
+latent_size = 15
 b = torch.Tensor([1 if i % 2 == 0 else 0 for i in range(latent_size)])
 flows = []
 
 
 vquantizers = []
-categorical = []
-for i in categorical:
-    vlayers = [nf.nets.MLP([1, 4 * latent_size, 1], init_zeros=True) for jj in range(4)]
-    vquantizers += [nf.nets.VariationalDequantization(var_flows=vlayers)]
+categorical = [1,3,4,5,6,7,8,9,13,14]
+categorical_qlevels = [9,16,16,7,15,6,5,2,42,2]
+#categorical = [13]
+#categorical_qlevels = [42]
+catlevels = [2]
+lcm = utils.utils.lcm(categorical_qlevels)
+vlayers = []
+b = torch.Tensor([1 if i % 2 == 0 else 0 for i in range(len(categorical))])
+
+for i in range(8):
+    vlayers += [nf.flows.ActNorm(len(categorical))]
+    s = nf.nets.MLP([len(categorical), 2 * len(categorical), len(categorical)], init_zeros=True)
+    t = nf.nets.MLP([len(categorical), 2 * len(categorical), len(categorical)], init_zeros=True)
+    if i % 2 == 0:
+        vlayers += [nf.flows.MaskedAffineFlow(b, t, s)]
+    else:
+        vlayers += [nf.flows.MaskedAffineFlow(1 - b, t, s)]
+    vlayers += [nf.flows.ActNorm(len(categorical))]
+
+#vlayers.reverse()
+b = torch.Tensor([1 if i % 2 == 0 else 0 for i in range(latent_size)])
+
+vquantizers = [nf.nets.VariationalDequantization(var_flows=torch.nn.ModuleList(vlayers),quants = lcm)]
 for i in range(K):
     s = nf.nets.MLP([latent_size, 2 * latent_size, latent_size], init_zeros=True)
     t = nf.nets.MLP([latent_size, 2 * latent_size, latent_size], init_zeros=True)
@@ -100,21 +121,21 @@ scale = torch.tensor(sc,device='cuda')
 #q0 = nf.distributions.base.GMM(weights=weight, mbase=mbase, vbase=vbase, scale=scale,n_cell = nc,trainable = tparam)
 print('~~~~~~~~',based)
 if based == 'GaussianMixture':
-    q0 = nf.distributions.base.GaussianMixture(n_modes = nc, dim = 29, trainable=tparam)
-    q1 = nf.distributions.base.GaussianMixture(n_modes = nc, dim = 29, trainable=tparam)
+    q0 = nf.distributions.base.GaussianMixture(n_modes = nc, dim = latent_size, trainable=tparam)
+    q1 = nf.distributions.base.GaussianMixture(n_modes = nc, dim = latent_size, trainable=tparam)
 elif based == 'GMM':
-    q0 = nf.distributions.base.GMM(weights=weight, mbase=mbase, vbase=vbase, scale=scale,n_cell = nc,dim=29,trainable = tparam)
-    q1 = nf.distributions.base.GMM(weights=weight, mbase=mbase, vbase=vbase, scale=scale,n_cell = nc,dim=29,trainable = tparam)
+    q0 = nf.distributions.base.GMM(weights=weight, mbase=mbase, vbase=vbase, scale=scale,n_cell = nc,dim=latent_size,trainable = tparam)
+    q1 = nf.distributions.base.GMM(weights=weight, mbase=mbase, vbase=vbase, scale=scale,n_cell = nc,dim=latent_size,trainable = tparam)
 elif based == 'T':
-    q0 = nf.distributions.base.T(n_dim=29, df = cb,trainable = tparam)
-    q1 = nf.distributions.base.T(n_dim=29, df = cb,trainable = tparam)
+    q0 = nf.distributions.base.T(n_dim=latent_size, df = cb,trainable = tparam)
+    q1 = nf.distributions.base.T(n_dim=latent_size, df = cb,trainable = tparam)
 elif based == 'GGD':
-    q0 = nf.distributions.base.GGD(n_dim=29, beta = cb,trainable = tparam)
-    q1 = nf.distributions.base.GGD(n_dim=29, beta = cb,trainable = tparam)
+    q0 = nf.distributions.base.GGD(n_dim=latent_size, beta = cb,trainable = tparam)
+    q1 = nf.distributions.base.GGD(n_dim=latent_size, beta = cb,trainable = tparam)
 
 elif based == 'MultivariateGaussian':
-    q0 = nf.distributions.base.MultivariateGaussian(n_dim=29,trainable=tparam)
-    q1 = nf.distributions.base.MultivariateGaussian(n_dim=29,trainable=tparam)
+    q0 = nf.distributions.base.MultivariateGaussian(n_dim=latent_size,trainable=tparam)
+    q1 = nf.distributions.base.MultivariateGaussian(n_dim=latent_size,trainable=tparam) 
 
 with torch.no_grad():
     sample3,_ = q1.forward(20000)
@@ -125,18 +146,29 @@ with torch.no_grad():
 
 #q0 = nf.distributions.base.DiagGaussian(shape=30)
 
-nfm = nf.NormalizingFlow(q0=q0, flows=flows)
-nfmBest = nf.NormalizingFlow(q0=q0, flows=flows)
+nfm = nf.NormalizingFlow(q0=q0, flows=flows,categoricals=categorical,catlevels=catlevels,catvdeqs=vquantizers)
+nfmBest = nf.NormalizingFlow(q0=q0, flows=flows,categoricals=categorical,catlevels=catlevels,catvdeqs=vquantizers)
 
-X = pd.read_csv('/home/samiri/PhD/Synth/VCNF/prep.csv')
+X = pd.read_csv('/home/samiri/PhD/Synth/VCNF/adult.csv')
 X = X.drop(['Unnamed: 0'],1)
+xcol = X.columns
+for ii in range(len(categorical)):
+    X[X.columns[categorical[ii]]] = X[X.columns[categorical[ii]]] * lcm / categorical_qlevels[ii]
 
 # Original dataset
+###################### SCALER
 scaler = MinMaxScaler()
 scaler.fit(X)
 X = scaler.transform(X)
-X = X[X[:,-1]==sc]
-X = X[:,0:-1]
+
+#X = X.values
+###################### SCALER
+
+
+
+#X = X[X[:,-1]==sc]
+#X = X[:,0:-1]
+
 X = torch.tensor(X, dtype=torch.float32)
 dataset = TensorDataset(X)
 
@@ -295,6 +327,9 @@ for it in tqdm(range(max_iter)):
         # Plot learned posterior
         if (it + 1) % show_iter == 0:
             wb.append(pm)
+            ss,_ = nfmBest.sample(10000)
+            #print([np.unique(ss.detach().cpu()[:,i]).shape for i in range(1,15)])
+            #print([np.unique(X[:,i]).shape for i in range(1,15)])
             
             
 
@@ -355,9 +390,13 @@ for it in tqdm(range(max_iter)):
 # sample4 = pd.DataFrame(sample4.detach().cpu().numpy())
 
 
-sample2,_ = nfmBest.sample(20000)
+sample2,_ = nfmBest.sample(32561)
 sample2 = pd.DataFrame(sample2.cpu().detach().numpy())
-sample4,_ = nfmBest.q0.forward(20000)
+sample2.columns = xcol
+for ii in range(len(categorical)):
+    sample2[sample2.columns[categorical[ii]]] = np.floor((sample2[sample2.columns[categorical[ii]]] / lcm) * categorical_qlevels[ii])
+
+sample4,_ = nfmBest.q0.forward(32561)
 sample4 = pd.DataFrame(sample4.detach().cpu().numpy())
 
 torch.save(nfmBest, f'/home/samiri/PhD/Synth/VCNF/logs/model_nc_{nc}_cb_{cb}_mb_{mb}_scale_{sc}_trainable_{tparam}_nunit_{nu}_base_{based}.pth')

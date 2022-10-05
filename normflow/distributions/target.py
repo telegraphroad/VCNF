@@ -127,6 +127,32 @@ class StudentTDist(Target):
         """
         return torch.tensor(multivariate_t(loc=self.loc,df=self.df).logpdf(z.cpu().detach().numpy()),device='cuda')
 
+import torch.distributions as D
+
+class GMixture(Target):
+    """
+    Bimodal two-dimensional distribution
+    """
+    def __init__(self,dim=2):
+        super().__init__()
+        mix = D.Categorical(torch.ones(6,))
+        comp = D.Independent(D.Normal(torch.tensor([[-5.,-5],[0.,0.],[5.,5.],[10.,10.],[15.,12.],[20.,20.]]), torch.tensor([[0.2,0.2],[0.2,0.2],[0.2,0.2],[0.2,0.2],[0.2,1.],[1.8,0.5]])), 1)
+        self.gmm = D.MixtureSameFamily(mix, comp)
+
+    def sample(self, num_samples=1):
+        """
+        :param num_samples: Number of samples to draw
+        :return: Samples
+        """
+        return self.gmm.sample_n(num_samples).cuda()
+
+    def log_prob(self, z):
+        """
+        :param z: value or batch of latent variable
+        :return: log probability of the distribution for z
+        """
+        return self.gmm.log_prob(z.cpu()).cuda()
+
 class chi2Dist(Target):
     """
     Bimodal two-dimensional distribution

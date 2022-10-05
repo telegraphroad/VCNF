@@ -13,7 +13,7 @@ do
 					do
 						for b in "T" "GGD"
 						do
-							python run.py -cb "$cb" -mb "$mb"  -sc "$sc" -nc "$nc" -trainable "$tr" -nu "$nunit" -b "$b"
+							python runrings.py -cb "$cb" -mb "$mb"  -sc "$sc" -nc "$nc" -trainable "$tr" -nu "$nunit" -b "$b"
 						done
 					done
 				done
@@ -36,7 +36,7 @@ do
 					do
 						for b in "GaussianMixture" "MultivariateGaussian"
 						do
-							python run.py -cb "$mb" -mb "$mb"  -sc "$sc" -nc "$nc" -trainable "$tr" -nu "$nunit" -b "$b"
+							python runrings.py -cb "$mb" -mb "$mb"  -sc "$sc" -nc "$nc" -trainable "$tr" -nu "$nunit" -b "$b"
 						done
 					done
 				done

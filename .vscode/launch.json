@@ -12,17 +12,21 @@
             "console": "integratedTerminal",
             "justMyCode": true,
             "args": [
-                "-cb", "1.",
-                "-mb", "0.",
-                "-sc","1.",
-                "-nc","100",
-                "-trainable", "1",
-                "-nu", "16",
-                "-b", "T"
-    
-                
+                "-cb",
+                "2.",
+                "-mb",
+                "6.",
+                "-sc",
+                "1.",
+                "-nc",
+                "100",
+                "-trainable",
+                "1",
+                "-nu",
+                "16",
+                "-b",
+                "MultivariateGaussian"
             ]
-    
         }
     ]
 }

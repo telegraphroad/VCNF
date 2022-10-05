@@ -42,9 +42,9 @@ print(cb,mb,sc,nc,nu,tparam,based)
 #     for mb in [1.0001,2.,3.,10.,50.]:
 #         for sc in [1.,2.,3.,4.,5.]:
 #             for nc in [2,3,4,5,6,7,8,9,10,12,15,20,25,30,40,50,100,200,300,500,1000]:        
-max_iter = 25000
+max_iter = 30000
 num_samples = 2 ** 10
-anneal_iter = 12000
+anneal_iter = 14000
 annealing = True
 show_iter = 20
 # nc = 3
@@ -68,7 +68,7 @@ for i in range(K):
     flows += [nf.flows.ActNorm(latent_size)]
 
 # Set prior and q0
-prior = nf.distributions.target.NealsFunnel(v1shift = mb, v2shift = 0.)
+prior = nf.distributions.target.GMixture(dim=2)
 #q0 = nf.distributions.DiagGaussian(2)
 q0 = nf.distributions.base.MultivariateGaussian()
 

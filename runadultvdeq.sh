@@ -4,15 +4,15 @@ do
     do
         for tr in 1
         do
-            for nc in 1
+            for nc in 100
             do
                 for mb in 0.
                 do
-                    for cb in 3.
+                    for cb in 1.1 
                     do
-                        for b in "GGD" "T"
+                        for b in "GaussianMixture" "MultivariateGaussian"
                         do
-                            python runcred.py -cb "$cb" -mb "$mb"  -sc "$sc" -nc "$nc" -trainable "$tr" -nu "$nunit" -b "$b"
+                            python runadultvdeq.py -cb "$mb" -mb "$mb"  -sc "$sc" -nc "$nc" -trainable "$tr" -nu "$nunit" -b "$b"
                         done
                     done
                 done
@@ -28,15 +28,15 @@ do
     do
         for tr in 1
         do
-            for nc in 100
+            for nc in 1
             do
                 for mb in 0.
                 do
-                    for cb in 1.1 
+                    for cb in 3.
                     do
-                        for b in "GaussianMixture" "MultivariateGaussian"
+                        for b in "GGD" "T"
                         do
-                            python runcred.py -cb "$mb" -mb "$mb"  -sc "$sc" -nc "$nc" -trainable "$tr" -nu "$nunit" -b "$b"
+                            python runadultvdeq1ft.py -cb "$cb" -mb "$mb"  -sc "$sc" -nc "$nc" -trainable "$tr" -nu "$nunit" -b "$b"
                         done
                     done
                 done
@@ -44,3 +44,5 @@ do
         done
     done
 done
+
+

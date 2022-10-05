@@ -510,7 +510,7 @@ class GGD(BaseDistribution):
         return self.ggd.log_prob(z).mean(axis=1)
 
 
-class TSV(BaseDistribution):
+class T(BaseDistribution):
     """
     Normal T
     """
@@ -549,7 +549,7 @@ class TSV(BaseDistribution):
 
         return self.t.log_prob(z).mean(axis=1)
 
-class T(BaseDistribution):
+class TMV(BaseDistribution):
     """
     Multivariate T
     """

@@ -1,3 +1,4 @@
+from eagerpy import squeeze
 import torch
 import torch.nn as nn
 from . import distributions
@@ -9,7 +10,7 @@ class NormalizingFlow(nn.Module):
     """
     Normalizing Flow model to approximate target distribution
     """
-    def __init__(self, q0, flows, p=None):
+    def __init__(self, q0, flows, p=None, categoricals = None, catlevels=None, catvdeqs=None):
         """
         Constructor
         :param q0: Base distribution
@@ -21,17 +22,36 @@ class NormalizingFlow(nn.Module):
         self.flows = nn.ModuleList(flows)
         self.p = p
 
+        if categoricals is not None:
+            self.categoricals = categoricals
+            self.vdeqs = nn.ModuleList(catvdeqs)
+            self.catlevels = catlevels
+            
+            
+
+
     def forward_kld(self, x, extended = False):
         """
         Estimates forward KL divergence, see arXiv 1912.02762
         :param x: Batch sampled from target distribution
         :return: Estimate of forward KL divergence averaged over batch
         """
+        log_qt = torch.zeros(len(x), device=x.device)
         log_q = torch.zeros(len(x), device=x.device)
         z = x
+        zc = x[:,self.categoricals]
         zarr = []
         zparr = []
-
+        if self.categoricals is not None:
+            for vcn in range(len(self.categoricals)):
+                zct, log_det = self.vdeqs[vcn].forward(z=zc[:,vcn].view([zc.shape[0],1]),ldj=log_q,reverse=False)
+                zc[:,vcn] = zct.squeeze()
+                if extended:
+                    zarr.append(z.cpu().detach().numpy())
+                    zparr.append(log_det.cpu().detach().numpy())
+                log_qt += log_det
+        log_q = log_qt
+        z[:,self.categoricals] = zc.float()
         for i in range(len(self.flows) - 1, -1, -1):
             z, log_det = self.flows[i].inverse(z)
             if extended:
@@ -129,10 +149,22 @@ class NormalizingFlow(nn.Module):
         """
         z, log_q = self.q0(num_samples)
         #print('88888',self.q0)
-        print('99999',z.shape,log_q.shape)
+        #print('99999',z.shape,log_q.shape)
         for flow in self.flows:
             z, log_det = flow(z)
             log_q -= log_det
+        
+        if self.categoricals is not None:
+
+            zc = z[:,self.categoricals]            
+            for vct in range(0,len(self.categoricals)):
+
+                zct, log_det = self.vdeqs[vct].forward(z=zc[:,vct].view([zc.shape[0],1]),ldj=log_q,reverse=True)
+                zc[:,vct] = zct.squeeze()
+                log_q += log_det
+            z[:,self.categoricals] = zc.double()
+            
+
         return z, log_q
 
     def log_prob(self, x):

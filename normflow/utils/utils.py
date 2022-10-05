@@ -1,5 +1,11 @@
 import torch
+import math
+from functools import reduce
 
+def lcm(arr):
+
+    l=reduce(lambda x,y:(x*y)//math.gcd(x,y),arr)
+    return l
 
 def matvec(mat: torch.Tensor, vec: torch.Tensor) -> torch.Tensor:
     return torch.matmul(mat, vec.unsqueeze(-1)).squeeze(-1)
